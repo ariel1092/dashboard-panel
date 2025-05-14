@@ -1,0 +1,1 @@
+export const ENCRYPTER = Symbol('ENCRYPTER');
