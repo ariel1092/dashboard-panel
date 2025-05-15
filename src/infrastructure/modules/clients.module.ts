@@ -12,8 +12,8 @@ import { FindClientByPhoneUseCase } from 'src/aplication/clients/use-cases/find-
 import { FindClientByEmailUseCase } from 'src/aplication/clients/use-cases/find-client-by-email.use-case';
 import { ClientExistsUseCase } from 'src/aplication/clients/use-cases/client-exists.use-case';
 import { CountClientsUseCase } from 'src/aplication/clients/use-cases/count-clients.use-case';
-import { FindClientsWithInteractionSinceUseCase } from 'src/aplication/use-case/find-clients-with-interaction-since.usecase';
-import { FindClientsWithoutInteractionSinceUseCase } from 'src/aplication/use-case/find-clients-without-interaction-since.usecase';
+import { FindClientsWithInteractionSinceUseCase } from 'src/aplication/clients/use-cases/find-clients-with-interaction-since.usecase';
+import { FindClientsWithoutInteractionSinceUseCase } from 'src/aplication/clients/use-cases/find-clients-without-interaction-since.usecase';
 import { MongoClientRepository } from '../repositories/mongo-client.repository';
 import { ClientController } from '../controllers/clients.controller';
 import { GetAllClientsUseCase } from 'src/aplication/clients/use-cases/get-all-clients.use-case';
