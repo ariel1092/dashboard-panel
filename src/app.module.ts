@@ -6,9 +6,11 @@ import { ClientController } from './infrastructure/controllers/clients.controlle
 import { AuthController } from './infrastructure/controllers/auth.controller';
 import { ClientsModule } from './infrastructure/modules/clients.module';
 import { AuthModule } from './infrastructure/modules/auth.module';
+import { TestController } from './infrastructure/controllers/test.controller';
+import { WhatsappModule } from './infrastructure/modules/whatsapp.module';
 
 @Module({
-  controllers: [ClientController, AuthController], 
+  controllers: [ClientController, AuthController,TestController], 
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -21,7 +23,8 @@ import { AuthModule } from './infrastructure/modules/auth.module';
     }),
     UserModule,
     ClientsModule,
-    AuthModule
+    AuthModule,
+    WhatsappModule,
   ],
 })
 export class AppModule {}
