@@ -7,6 +7,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Injectable, Inject } from '@nestjs/common';
 import { Client } from "src/domain/clients/entities/client.entity";
 import { ClientDocument } from "../schema/client.schema";
+import { CLIENT_REPOSITORY } from "src/domain/token/client.repository.token";
 
 @Injectable()
 export class MongoClientRepository implements ClientRepository {

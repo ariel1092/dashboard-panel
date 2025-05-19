@@ -1,25 +1,31 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
-import { ClientRepository } from 'src/domain/clients/client-repository.interface';
-import { ClientLogRepository } from 'src/domain/repositories/client-log-repository.interface';
+// src/infrastructure/scheduler/client-scheduler.service.ts
 
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+
+import { ClientRepository } from '../../domain/clients/client-repository.interface';
+import { ClientLogRepository } from '../../domain/repositories/client-log-repository.interface';
+import { SchedulerServicePort } from 'src/domain/scheluder/scheluder.service.port';
+import { CLIENT_LOG_REPOSITORY, CLIENT_REPOSITORY } from 'src/domain/token/client.repository.token';
 
 @Injectable()
-export class ClientScheduler {
-  private readonly logger = new Logger(ClientScheduler.name);
+export class ClientSchedulerService implements SchedulerServicePort {
+  private readonly logger = new Logger(ClientSchedulerService.name);
 
   constructor(
+    @Inject(CLIENT_REPOSITORY) 
     private readonly clientRepo: ClientRepository,
+     @Inject(CLIENT_LOG_REPOSITORY) 
     private readonly logRepo: ClientLogRepository,
   ) {}
 
   @Cron('0 0 1 * *') // Cada día a la 1:00 AM
   async handleCron() {
-    this.logger.log('Ejecutando tarea programada para actualizar estado de clientes...');
+    this.logger.log('⏰ Ejecutando tarea programada para actualizar estado de clientes...');
     await this.updateClientStatus();
   }
 
-  async updateClientStatus() {
+  async updateClientStatus(): Promise<void> {
     const THIRTY_DAYS_AGO = new Date();
     THIRTY_DAYS_AGO.setDate(THIRTY_DAYS_AGO.getDate() - 30);
 

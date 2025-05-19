@@ -9,8 +9,12 @@ import { AuthModule } from './infrastructure/modules/auth.module';
 import { TestController } from './infrastructure/controllers/test.controller';
 import { WhatsappModule } from './infrastructure/modules/whatsapp.module';
 import { LlamaIaModule } from './infrastructure/modules/llama-ia.module';
+import { CampaignsModule } from './infrastructure/modules/campaings.module';
+import { SchedulerModule } from './infrastructure/modules/scheduler.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
+
   controllers: [ClientController, AuthController,TestController], 
   imports: [
     ConfigModule.forRoot({
@@ -26,7 +30,9 @@ import { LlamaIaModule } from './infrastructure/modules/llama-ia.module';
     ClientsModule,
     AuthModule,
     WhatsappModule,
-    LlamaIaModule
+    LlamaIaModule,
+    CampaignsModule,
+    SchedulerModule,
   ],
 })
 export class AppModule {}

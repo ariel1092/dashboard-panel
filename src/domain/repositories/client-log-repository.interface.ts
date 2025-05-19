@@ -4,8 +4,8 @@ export interface ClientLogRepository {
       activeUpdated: number;
       inactiveUpdated: number;
       message: string;
-      activeClients?: { name: string; phone: string }[];
-      inactiveClients?: { name: string; phone: string }[];
+      activeClients: { name: string; phone: string }[];
+      inactiveClients: { name: string; phone: string }[];
     }): Promise<void>;
   
     findAll(): Promise<any[]>;

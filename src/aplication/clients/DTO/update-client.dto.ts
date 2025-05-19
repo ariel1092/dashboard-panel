@@ -4,11 +4,11 @@ import { Transform } from 'class-transformer';
 export class UpdateClientDto {
   @IsOptional()
   @IsPhoneNumber('AR', { message: 'El número de teléfono no es válido para Argentina' })
-  phone?: string;
+  phone: string;
 
   @IsOptional()
   @IsString({ message: 'El nombre debe ser un texto' })
-  name?: string;
+  name: string;
 
   @IsOptional()
   @Transform(({ value }) => new Date(value))

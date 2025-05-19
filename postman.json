@@ -1,0 +1,269 @@
+{
+  "info": {
+    "name": "Test Controller + Auth + Client API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Send WhatsApp Message",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"+123456789\",\n  \"message\": \"Hello from Postman!\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/test/send-whatsapp",
+          "host": ["{{base_url}}"],
+          "path": ["test", "send-whatsapp"]
+        }
+      }
+    },
+    {
+      "name": "Generate Message",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Hello, generate a message\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/test/generate-message",
+          "host": ["{{base_url}}"],
+          "path": ["test", "generate-message"]
+        }
+      }
+    },
+    {
+      "name": "Run Campaign",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"campaignId\": \"1234\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/test/run-campaign",
+          "host": ["{{base_url}}"],
+          "path": ["test", "run-campaign"]
+        }
+      }
+    },
+    {
+      "name": "Update Client Status",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/test/update-client-status",
+          "host": ["{{base_url}}"],
+          "path": ["test", "update-client-status"]
+        }
+      }
+    },
+    {
+      "name": "Create Log",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Log message\",\n  \"activeUpdated\": 5,\n  \"inactiveUpdated\": 2\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/test/create-log",
+          "host": ["{{base_url}}"],
+          "path": ["test", "create-log"]
+        }
+      }
+    },
+    {
+      "name": "Register User",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/register",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Create Client",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+123456789\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/clients",
+          "host": ["{{base_url}}"],
+          "path": ["clients"]
+        }
+      }
+    },
+    {
+      "name": "Update Client",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"johnnew@example.com\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/clients/1234",
+          "host": ["{{base_url}}"],
+          "path": ["clients", "1234"]
+        }
+      }
+    },
+    {
+      "name": "Delete (Disable) Client",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/clients/1234",
+          "host": ["{{base_url}}"],
+          "path": ["clients", "1234"]
+        }
+      }
+    },
+    {
+      "name": "Get All Clients",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/clients",
+          "host": ["{{base_url}}"],
+          "path": ["clients"]
+        }
+      }
+    },
+    {
+      "name": "Count Clients",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/clients/count",
+          "host": ["{{base_url}}"],
+          "path": ["clients", "count"]
+        }
+      }
+    },
+    {
+      "name": "Check Client Exists",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/clients/exists?phone=+123456789",
+          "host": ["{{base_url}}"],
+          "path": ["clients", "exists"],
+          "query": [
+            {
+              "key": "phone",
+              "value": "+123456789"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Find Client By Phone",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/clients/phone/+123456789",
+          "host": ["{{base_url}}"],
+          "path": ["clients", "phone", "+123456789"]
+        }
+      }
+    },
+    {
+      "name": "Find Client By Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/clients/email/john@example.com",
+          "host": ["{{base_url}}"],
+          "path": ["clients", "email", "john@example.com"]
+        }
+      }
+    },
+    {
+      "name": "Get Client By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/clients/1234",
+          "host": ["{{base_url}}"],
+          "path": ["clients", "1234"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
