@@ -1,12 +1,14 @@
 // src/infrastructure/controllers/test.controller.ts
 
-import { Controller, Post, Body, Inject } from '@nestjs/common';
+import { Controller, Post, Body, Inject, Query } from '@nestjs/common';
 import { RunCampaignUseCase } from 'src/aplication/campaings/use-cases/run-campaign.usecase';
 import { GenerateMessageUseCase } from 'src/aplication/IA-llama/use-case/use-cases/generate-message.usecase';
 import { UpdateClientStatusUseCase } from 'src/aplication/scheluder/use-case/update-client-status.usecase';
 import { SendWhatsappMessageUseCase } from 'src/aplication/whatsapp/useCase/send-whatsapp-message.usecase';
 import { MongoClientLogRepository } from '../repositories/mongo-client-log.repository';
 import { CLIENT_LOG_REPOSITORY } from 'src/domain/token/client.repository.token';
+import { FindClientsByDateUseCase } from 'src/aplication/clients/use-cases/find-clients-by-date.use-case';
+import { SendMothersDayPromotionUseCase } from 'src/aplication/clients/use-cases/send-mothersday-promotion.usecase';
 
 @Controller('test')
 export class TestController {
@@ -15,6 +17,8 @@ export class TestController {
     private readonly generateMessageUseCase: GenerateMessageUseCase,
      private readonly runCampaignUseCase: RunCampaignUseCase,
        private readonly updateClientStatusUseCase: UpdateClientStatusUseCase,
+       private readonly findClientsByDateUseCase: FindClientsByDateUseCase,
+         private readonly sendMothersDayPromotionUseCase: SendMothersDayPromotionUseCase,
      @Inject(CLIENT_LOG_REPOSITORY) private readonly clientLogRepository: MongoClientLogRepository
   ) {}
   @Post('send-whatsapp')
@@ -63,6 +67,23 @@ async createLog(@Body() body: {
     throw error;
   }
 }
+// src/infrastructure/controllers/test.controller.ts
+
+
+@Post('clients-by-date')
+async getClientsByDate(@Query('limit') limit: string, @Query('date') date: string) {
+  const parsedDate = new Date(date);
+  const parsedLimit = parseInt(limit, 10);
+  const clients = await this.findClientsByDateUseCase.execute(parsedLimit, parsedDate);
+  return clients;
+}
+
+
+  @Post('send-mothersday-promo')
+  async sendPromo() {
+    await this.sendMothersDayPromotionUseCase.execute();
+    return { status: 'Mothers day promotion sent to 100 users' };
+  }
 
   
 }

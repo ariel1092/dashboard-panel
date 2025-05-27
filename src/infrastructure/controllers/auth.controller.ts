@@ -20,11 +20,9 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiBody({ type: RegisterDto })
   async register(@Body() body: RegisterDto) {
-    console.log('📩 Llegó a /auth/register con DTO:', body); // MOSTRÁ TODO
-    console.log('🧪 Tipo de dto:', typeof body);
+
     const { email, password } = body;
     const result = await this.registerUserUseCase.execute(email, password);
-    console.log('✅ Usuario registrado:', result);
     return { message: 'Usuario registrado con éxito', ...result };
   }
 

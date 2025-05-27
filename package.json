@@ -36,6 +36,7 @@
     "class-validator": "^0.14.2",
     "dotenv": "^16.5.0",
     "jsonwebtoken": "^9.0.2",
+    "logger": "^0.0.1",
     "mongodb": "^6.16.0",
     "mongoose": "^8.14.2",
     "reflect-metadata": "^0.2.2",

@@ -20,4 +20,7 @@ export interface ClientRepository {
   updateInactiveClientsBefore(date: Date): Promise<number>;
   findClientsWithInteractionSince(date: Date): Promise<Client[]>;
   findClientsWithoutInteractionSince(date: Date): Promise<Client[]>;
+  findClientsByDate(limit: number, date: Date): Promise<{ name: string; phone: string }[]>;
+  findTop100WithRecentInteraction(): Promise<Client[]>;
+
 }

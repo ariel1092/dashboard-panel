@@ -17,7 +17,7 @@ import { ClientExistsUseCase } from 'src/aplication/clients/use-cases/client-exi
 import { CountClientsUseCase } from 'src/aplication/clients/use-cases/count-clients.use-case';
 import { FindClientsWithInteractionSinceUseCase } from 'src/aplication/clients/use-cases/find-clients-with-interaction-since.usecase';
 import { FindClientsWithoutInteractionSinceUseCase } from 'src/aplication/clients/use-cases/find-clients-without-interaction-since.usecase';
-import { MongoClientRepository } from '../repositories/mongo-client.repository';
+
 import { GetAllClientsUseCase } from 'src/aplication/clients/use-cases/get-all-clients.use-case';
 import { UpdateClientStatusUseCase } from 'src/aplication/scheluder/use-case/update-client-status.usecase';
 import { SendWhatsappMessageUseCase } from 'src/aplication/whatsapp/useCase/send-whatsapp-message.usecase';
@@ -26,6 +26,12 @@ import { RunCampaignUseCase } from 'src/aplication/campaings/use-cases/run-campa
 import { SchedulerModule } from './scheduler.module';
 import { ClientLog, ClientLogSchema } from '../schema/client-log.schema';
 import { MongoClientLogRepository } from '../repositories/mongo-client-log.repository';
+import { MongoClientRepository } from '../repositories/mongo-client.repository';
+import { FindClientsByDateUseCase } from 'src/aplication/clients/use-cases/find-clients-by-date.use-case';
+import { SendMothersDayPromotionUseCase } from 'src/aplication/clients/use-cases/send-mothersday-promotion.usecase';
+import { WHATSAPP_SERVICE } from 'src/domain/token/whatsapp-service.token';
+import { WhatsappApiService } from '../whatsapp/whatsapp-api.service';
+import { NormalizePhoneNumbersUseCase } from 'src/aplication/clients/use-cases/normalize-phone-numbers.usecase';
 
 
 @Module({
@@ -33,6 +39,7 @@ import { MongoClientLogRepository } from '../repositories/mongo-client-log.repos
   imports: [
       MongooseModule.forFeature([{ name: Client.name, schema: ClientSchema },
          { name: ClientLog.name, schema: ClientLogSchema },
+         
       ],
         
       ),
@@ -48,6 +55,10 @@ import { MongoClientLogRepository } from '../repositories/mongo-client-log.repos
   provide: CLIENT_LOG_REPOSITORY,
   useClass: MongoClientLogRepository,
 },
+ {
+      provide: WHATSAPP_SERVICE,
+      useClass: WhatsappApiService,
+    },
     // Casos de uso
     CreateClientUseCase,
     UpdateClientUseCase,
@@ -63,7 +74,10 @@ import { MongoClientLogRepository } from '../repositories/mongo-client-log.repos
     GetAllClientsUseCase,
     SendWhatsappMessageUseCase,
     GenerateMessageUseCase,
-    RunCampaignUseCase
+    RunCampaignUseCase,
+      FindClientsByDateUseCase,
+      SendMothersDayPromotionUseCase,
+      NormalizePhoneNumbersUseCase
   ],
   exports: [
     CreateClientUseCase,
@@ -84,6 +98,10 @@ import { MongoClientLogRepository } from '../repositories/mongo-client-log.repos
      CLIENT_REPOSITORY,
      MongooseModule,
      CLIENT_LOG_REPOSITORY,
+       FindClientsByDateUseCase,
+       SendMothersDayPromotionUseCase,
+       WHATSAPP_SERVICE,
+       NormalizePhoneNumbersUseCase
 
   ],
 })
