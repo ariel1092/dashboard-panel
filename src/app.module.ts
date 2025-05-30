@@ -11,7 +11,7 @@ import { WhatsappModule } from './infrastructure/modules/whatsapp.module';
 import { LlamaIaModule } from './infrastructure/modules/llama-ia.module';
 import { CampaignsModule } from './infrastructure/modules/campaings.module';
 import { SchedulerModule } from './infrastructure/modules/scheduler.module';
-import { ScheduleModule } from '@nestjs/schedule';
+import { ChatModule } from './infrastructure/modules/chat.module';
 
 @Module({
 
@@ -23,7 +23,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_URI'),
+        uri: configService.get<string>('MONGODB_URI'),
       }),
     }),
     UserModule,
@@ -33,6 +33,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     LlamaIaModule,
     CampaignsModule,
     SchedulerModule,
+    ChatModule
   ],
 })
 export class AppModule {}

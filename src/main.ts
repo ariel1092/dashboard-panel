@@ -9,11 +9,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   //  Habilitar CORS si tenés frontend aparte
-  app.enableCors();
+app.enableCors({
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  credentials: true,
+})
 
   //  Inyectar ConfigService para usar .env
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') ?? 3000;
+  const port = configService.get<number>('PORT') ?? 3002;
 
   // ✅ Validaciones automáticas con class-validator
   app.useGlobalPipes(
