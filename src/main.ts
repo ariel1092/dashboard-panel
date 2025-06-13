@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './infrastructure/filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,6 +14,7 @@ app.enableCors({
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
 })
+ app.useWebSocketAdapter(new IoAdapter(app));
 
   //  Inyectar ConfigService para usar .env
   const configService = app.get(ConfigService);

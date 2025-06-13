@@ -13,8 +13,11 @@ import { CreateChatUseCase } from "src/aplication/chat/use-cases/create-chat.use
 import { AssignSpecialistUseCase } from "src/aplication/chat/use-cases/assign-specialist.use-case"
 import { CHAT_REPOSITORY } from "src/domain/token/chat.repository.token"
 import { LlamaApiService } from "../IA-llama/llama-api.service"
+import { LlamaController } from "../controllers/llama.controller"
+import { AssignOperatorToChatUseCase } from "src/aplication/operators/use-cases/assign-operator.use-case"
 
 @Module({
+  controllers: [LlamaController],
   imports: [
     MongooseModule.forFeature([
       { name: ChatMessageModel.name, schema: ChatMessageSchema },
@@ -30,6 +33,8 @@ import { LlamaApiService } from "../IA-llama/llama-api.service"
     AssignSpecialistUseCase,
     WsJwtGuard,
     LlamaApiService,
+    AssignOperatorToChatUseCase,
+    
     {
       provide: CHAT_REPOSITORY,
       useClass: MongoChatRepository,

@@ -1,6 +1,5 @@
 import { LlamaServicePort } from "src/domain/IA-llama/llama.service.port";
 
-
 export class GenerateMessageUseCase {
   constructor(private readonly llamaService: LlamaServicePort) {}
 

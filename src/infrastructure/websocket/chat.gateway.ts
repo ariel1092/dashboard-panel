@@ -18,6 +18,7 @@ import { SendMessageDto } from "src/aplication/chat/dto/send-message.dto"
 import { JoinChatDto } from "src/aplication/chat/dto/join-chat.dto"
 import { WsJwtGuard } from "../guards/ws-jwt.guard"
 import { LlamaApiService } from "../IA-llama/llama-api.service"
+import { AssignOperatorToChatUseCase } from "src/aplication/operators/use-cases/assign-operator.use-case"
 
 interface AuthenticatedSocket extends Socket {
   userId?: string
@@ -39,10 +40,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private connectedUsers = new Map<string, string>() // userId -> socketId
 
   constructor(
-    private readonly sendMessageUseCase: SendMessageUseCase,
-    private readonly createChatUseCase: CreateChatUseCase,
-    private readonly assignSpecialistUseCase: AssignSpecialistUseCase,
-     private readonly llamaService: LlamaApiService,
+   private readonly sendMessageUseCase: SendMessageUseCase,
+  private readonly createChatUseCase: CreateChatUseCase,
+  private readonly assignOperatorUseCase: AssignOperatorToChatUseCase,
+  private readonly assignSpecialistUseCaseToChat: AssignSpecialistUseCase, // <- este
+  private readonly llamaService: LlamaApiService,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
@@ -50,6 +52,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Aquí deberías validar el JWT del cliente
       // Por ahora, asumimos que el userId viene en el handshake
       const userId = client.handshake.auth?.userId
+    
       const userRole = client.handshake.auth?.userRole || "CLIENT"
 
       if (!userId) {
@@ -95,66 +98,51 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           timestamp: new Date(),
         })
       }
+      //handleMessage
     }
   }
-
-@SubscribeMessage("sendMessage")
-@UseGuards(WsJwtGuard)
-async handleMessage(client: AuthenticatedSocket, data: SendMessageDto) {
+@SubscribeMessage('createChat')
+async handleMessage(@ConnectedSocket() client: AuthenticatedSocket) {
   try {
-    const message = await this.sendMessageUseCase.execute(
-      data.userId,
-      data.chatId,
-      data.content,
-      data.receiverId
-    );
+    const chat = await this.createChatUseCase.execute();
 
-    this.server.to(`chat:${data.chatId}`).emit("newMessage", {
-      id: message.id,
-      userId: message.userId,
-      chatId: message.chatId,
-      content: message.content,
-      receiverId: message.receiverId,
-      isRead: message.isRead,
-      timestamp: message.timestamp,
+    client.emit('chatCreated', {
+      id: chat.id,
+      status: chat.status,
+      specialistId: chat.specialistId,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt,
     });
 
-    this.logger.log(`Mensaje enviado en chat ${data.chatId} por usuario ${data.userId}`);
+    this.logger.log(`Chat ${chat.id} creado por usuario ${client.userId}`);
 
-    // 🤖 Generar y enviar respuesta automática del bot
-    if (client.userRole === "CLIENT") {
-      console.log(`💬 Mensaje recibido de usuario ${data.userId}:`, message);
-      const aiReply = await this.llamaService.generateMessage(data.content);
-console.log(`🤖 Respuesta de IA para el usuario ${data.userId}:`, aiReply);
-      const botMessage = await this.sendMessageUseCase.execute(
-        "BOT", // ID ficticio del bot
-        data.chatId,
-        aiReply,
-        data.userId
-      );
+    try {
+     const operator = await this.assignOperatorUseCase.execute(); // ✅ obtiene operador disponible
 
-      this.server.to(`chat:${data.chatId}`).emit("newMessage", {
-        id: botMessage.id,
-        userId: "BOT",
-        chatId: data.chatId,
-        content: aiReply,
-        receiverId: data.userId,
-        isRead: false,
-        timestamp: botMessage.timestamp,
+const updatedChat = await this.assignSpecialistUseCaseToChat.execute(chat.id, operator.id); // ✅ asigna operador al chat
+
+      this.emitSpecialistAssigned(chat.id, operator.id);
+
+      this.logger.log(`🧑‍💼 Operador ${operator} asignado al chat ${chat.id}`);
+    } catch (assignErr) {
+      this.logger.warn(`🚨 No hay operadores disponibles para el chat ${chat.id}`);
+
+      this.server.to(`chat:${chat.id}`).emit("chatInQueue", {
+        chatId: chat.id,
+        message: "Actualmente no hay operadores disponibles. Estás en la cola de atención.",
+        timestamp: new Date(),
       });
-
-      this.logger.log(`Respuesta automática enviada por el bot en chat ${data.chatId}`);
     }
 
   } catch (error) {
-    this.logger.error(`Error enviando mensaje: ${error.message}`);
-    client.emit("error", { message: "Error enviando mensaje" });
+    this.logger.error(`❌ Error creando chat: ${error.message}`);
+    client.emit('error', { message: 'Error creando chat' });
   }
 }
 
 
   @SubscribeMessage("joinChat")
-  @UseGuards(WsJwtGuard)
+  // @UseGuards(WsJwtGuard)
   async handleJoinChat(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() data: JoinChatDto) {
     await client.join(`chat:${data.chatId}`)
     this.logger.log(`Usuario ${client.userId} se unió al chat ${data.chatId}`)
@@ -166,14 +154,14 @@ console.log(`🤖 Respuesta de IA para el usuario ${data.userId}:`, aiReply);
   }
 
   @SubscribeMessage("leaveChat")
-  @UseGuards(WsJwtGuard)
+  // @UseGuards(WsJwtGuard)
   async handleLeaveChat(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() data: JoinChatDto) {
     await client.leave(`chat:${data.chatId}`)
     this.logger.log(`Usuario ${client.userId} salió del chat ${data.chatId}`)
   }
 
   @SubscribeMessage("typingStart")
-  @UseGuards(WsJwtGuard)
+  // @UseGuards(WsJwtGuard)
   handleTypingStart(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() data: { chatId: string }) {
     client.to(`chat:${data.chatId}`).emit("userTyping", {
       userId: client.userId,
@@ -183,7 +171,7 @@ console.log(`🤖 Respuesta de IA para el usuario ${data.userId}:`, aiReply);
   }
 
   @SubscribeMessage("typingStop")
-  @UseGuards(WsJwtGuard)
+  // @UseGuards(WsJwtGuard)
   handleTypingStop(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() data: { chatId: string }) {
     client.to(`chat:${data.chatId}`).emit("userTyping", {
       userId: client.userId,
@@ -193,7 +181,7 @@ console.log(`🤖 Respuesta de IA para el usuario ${data.userId}:`, aiReply);
   }
 
   @SubscribeMessage('createChat')
-  @UseGuards(WsJwtGuard)
+  // @UseGuards(WsJwtGuard)
   async handleCreateChat(@ConnectedSocket() client: AuthenticatedSocket) {
     try {
       const chat = await this.createChatUseCase.execute();

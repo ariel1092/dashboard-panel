@@ -1,0 +1,103 @@
+
+
+//----------------------ESTO FUNCIONA-------------------------------
+
+
+// import { Inject, Injectable } from '@nestjs/common';
+// import { MongoOperatorRepository } from '../repositories/mongo-operator.repository';
+// import { CreateOperatorDto } from 'src/domain/operators/dto/create-operator.dto';
+// import { Operator } from 'src/domain/operators/entities/operator.entity';
+// import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
+
+
+// @Injectable()
+// export class OperatorService {
+//   constructor(
+//     @Inject(OPERATOR_REPOSITORY)
+//     private readonly repository: MongoOperatorRepository) {}
+
+//   async create(dto: CreateOperatorDto) {
+//     const operator = new Operator(
+//       "",
+//       dto.name,
+//       dto.isAvailable ?? true,
+//       0,
+//       new Date(),
+//     );
+//     await this.repository.save(operator);
+//     return operator;
+//   }
+
+//   async getAvailable() {
+//     return this.repository.findAvailable();
+//   }
+
+//   async getById(id: string) {
+//     return this.repository.findById(id);
+//   }
+// }
+//---------------------------------------------------------------------------------------------
+
+
+
+import { Inject, Injectable } from '@nestjs/common';
+import { CreateOperatorDto } from 'src/domain/operators/dto/create-operator.dto';
+import { OperatorRepository } from 'src/domain/operators/repositories/operator.repository';
+import { Operator, OperatorState } from 'src/domain/operators/entities/operator.entity';
+import { AssignOperatorToChatUseCase } from 'src/aplication/operators/use-cases/assign-operator.use-case';
+import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
+
+
+@Injectable()
+export class OperatorService {
+  constructor(
+    @Inject(OPERATOR_REPOSITORY)
+    private readonly operatorRepo: OperatorRepository,
+    private readonly assignOperatorUseCase: AssignOperatorToChatUseCase,
+
+  ) {}
+
+ async create(dto: CreateOperatorDto) {
+     const operator = new Operator(
+       "",
+       dto.name,
+       dto.isAvailable ?? true,
+       0,
+       new Date(),
+     );
+     await this.operatorRepo.save(operator);
+     return operator;
+   }
+
+  async getAvailable(): Promise<Operator[]> {
+    return await this.operatorRepo.findAvailable();
+  }
+
+  async getById(id: string): Promise<Operator | null> {
+    return await this.operatorRepo.findById(id);
+  }
+
+  // ✅ Asignar automáticamente un operador disponible
+  async assignOperator(): Promise<Operator> {
+    return await this.assignOperatorUseCase.execute();
+  }
+
+  // ✅ Actualizar estado manualmente (por ID)
+  async updateState(id: string, state: OperatorState): Promise<Operator> {
+    const operator = await this.getById(id);
+    if (!operator) throw new Error('Operator not found');
+
+    operator.state = state;
+    return await this.operatorRepo.update(operator);
+  }
+
+  // ✅ Liberar operador: se decrementa su contador de chats y cambia a AVAILABLE si corresponde
+  async releaseOperator(id: string): Promise<Operator> {
+    const operator = await this.getById(id);
+    if (!operator) throw new Error('Operator not found');
+
+    operator.activeChats = Math.max(0, operator.activeChats - 1);
+    operator.state = operator.activeChats === 0 ? OperatorState.AVAILABLE : OperatorState.BUSY;
+    return await this.operatorRepo.update(operator);
+  }
+}

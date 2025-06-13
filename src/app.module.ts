@@ -12,10 +12,13 @@ import { LlamaIaModule } from './infrastructure/modules/llama-ia.module';
 import { CampaignsModule } from './infrastructure/modules/campaings.module';
 import { SchedulerModule } from './infrastructure/modules/scheduler.module';
 import { ChatModule } from './infrastructure/modules/chat.module';
+import { OperatorModule } from './infrastructure/modules/operator.module';
+import { OperatorController } from './infrastructure/controllers/operator.controller';
+
 
 @Module({
 
-  controllers: [ClientController, AuthController,TestController], 
+  controllers: [ClientController, AuthController,TestController,OperatorController], 
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -33,7 +36,9 @@ import { ChatModule } from './infrastructure/modules/chat.module';
     LlamaIaModule,
     CampaignsModule,
     SchedulerModule,
-    ChatModule
+    ChatModule,
+    OperatorModule
+
   ],
 })
 export class AppModule {}
