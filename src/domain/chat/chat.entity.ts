@@ -1,16 +1,17 @@
 export class ChatMessage {
   constructor(
-    public readonly id: string,
+    public readonly id: string ,
     public readonly userId: string,
     public readonly chatId: string,
     public readonly content: string,
     public readonly receiverId?: string,
+    public readonly senderType: "CLIENT" | "SPECIALIST" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
     public readonly isRead: boolean = false,
     public readonly timestamp: Date = new Date(),
   ) {}
 
   markAsRead(): ChatMessage {
-    return new ChatMessage(this.id, this.userId, this.chatId, this.content, this.receiverId, true, this.timestamp)
+    return new ChatMessage(this.id, this.userId, this.chatId, this.content, this.receiverId, this.senderType, this.isRead, this.timestamp)
   }
 }
 

@@ -8,7 +8,7 @@ export class LlamaApiService implements LlamaServicePort {
     apiKey: process.env.OPENROUTER_API_KEY,
     baseURL: 'https://openrouter.ai/api/v1',
     defaultHeaders: {
-      'HTTP-Referer': 'http://localhost:3000', // Cambialo si usás otra URL en frontend
+      'HTTP-Referer': 'http://localhost:3001', // Cambialo si usás otra URL en frontend
       'X-Title': 'depilzoneKey', // Nombre personalizado para identificar tu app en OpenRouter
     },
   });
@@ -16,7 +16,7 @@ export class LlamaApiService implements LlamaServicePort {
   async generateMessage(prompt: string): Promise<string> {
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo',
+        model: 'gpt-3.5-turbo', // Podés cambiar a otro modelo si lo necesitás
         messages: [
           {
             role: 'system',

@@ -5,14 +5,15 @@ import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './infrastructure/filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   //  Habilitar CORS si tenés frontend aparte
 app.enableCors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true,
+  origin: process.env.FRONTEND_URL || "http://localhost:3001",
+  credentials: false,
 })
  app.useWebSocketAdapter(new IoAdapter(app));
 
@@ -32,7 +33,7 @@ app.enableCors({
 // Documentación Swagger
 const config = new DocumentBuilder()
 .setTitle('Client API')
-.setDescription('API para gestionar clientes y autenticación')
+.setDescription('API Agentes de Ventas')
 .setVersion('1.0.0')
 .addBearerAuth({
   type: 'http',
@@ -40,6 +41,7 @@ const config = new DocumentBuilder()
   bearerFormat: 'JWT',
 }, 'JWT')
 .build();
+ app.useGlobalFilters(new AllExceptionsFilter());
 
 const document = SwaggerModule.createDocument(app, config);
 SwaggerModule.setup('api', app, document);

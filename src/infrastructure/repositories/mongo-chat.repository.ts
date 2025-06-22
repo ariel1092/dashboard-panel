@@ -7,6 +7,7 @@ import { ChatMessageModel, type ChatMessageDocument } from "../schema/chat-messa
 import { ChatModel, type ChatDocument } from "../schema/chat.schema"
 import { ConnectedUserModel, type ConnectedUserDocument } from "../schema/connected-user.schema"
 import { v4 as uuidv4 } from "uuid"
+import { send } from "process"
 
 @Injectable()
 export class MongoChatRepository implements ChatRepository {
@@ -29,6 +30,7 @@ export class MongoChatRepository implements ChatRepository {
       saved.chatId,
       saved.content,
       saved.receiverId,
+      saved.senderType,
       saved.isRead,
       saved.timestamp,
     )
@@ -39,13 +41,14 @@ export class MongoChatRepository implements ChatRepository {
     return docs.map(
       (doc) =>
         new ChatMessage(
-          doc._id.toString(),
-          doc.userId,
-          doc.chatId,
-          doc.content,
-          doc.receiverId,
-          doc.isRead,
-          doc.timestamp,
+         doc._id.toString(),
+  doc.userId,
+  doc.chatId,
+  doc.content,
+  doc.receiverId,
+  doc.senderType, // <-- should be senderType here
+  doc.isRead,     // <-- should be isRead here
+  doc.timestamp,
         ),
     )
   }
@@ -60,6 +63,7 @@ export class MongoChatRepository implements ChatRepository {
           doc.chatId,
           doc.content,
           doc.receiverId,
+          doc.senderType,
           doc.isRead,
           doc.timestamp,
         ),

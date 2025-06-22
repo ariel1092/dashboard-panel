@@ -6,7 +6,7 @@ import { OperatorService } from '../services/operator.service';
 import { MongoOperatorRepository } from '../repositories/mongo-operator.repository';
 import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
 import { AssignOperatorToChatUseCase } from 'src/aplication/operators/use-cases/assign-operator.use-case';
-import { OperatorRepository } from 'src/domain/operators/repositories/operator.repository';
+
 
 
 @Module({
