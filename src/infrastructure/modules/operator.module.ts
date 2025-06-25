@@ -24,6 +24,6 @@ import { AssignOperatorToChatUseCase } from 'src/aplication/operators/use-cases/
     },
 
   ],
-  exports: [OperatorService, OPERATOR_REPOSITORY,AssignOperatorToChatUseCase],
+  exports: [OperatorService, OPERATOR_REPOSITORY,AssignOperatorToChatUseCase,],
 })
 export class OperatorModule {}

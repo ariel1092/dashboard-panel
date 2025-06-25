@@ -1,5 +1,12 @@
 import type { ChatMessage, Chat } from "./chat.entity"
 
+interface CreateChatParams {
+  userId: string;
+  type: 'IA' | 'HUMAN';
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 export interface ChatRepository {
   // Mensajes
   saveMessage(message: ChatMessage): Promise<ChatMessage>
@@ -8,7 +15,7 @@ export interface ChatRepository {
   markMessageAsRead(messageId: string): Promise<void>
 
   // Chats
-  createChat(): Promise<Chat>
+createChat(params: CreateChatParams): Promise<Chat>;
   getChatById(chatId: string): Promise<Chat | null>
   getChatsByUserId(userId: string): Promise<Chat[]>
   getChatsBySpecialistId(specialistId: string): Promise<Chat[]>

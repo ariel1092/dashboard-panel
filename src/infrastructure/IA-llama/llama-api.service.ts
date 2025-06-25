@@ -16,7 +16,7 @@ export class LlamaApiService implements LlamaServicePort {
   async generateMessage(prompt: string): Promise<string> {
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo', // Podés cambiar a otro modelo si lo necesitás
+        model: 'mistralai/mistral-7b-instruct', // Podés cambiar a otro modelo si lo necesitás
         messages: [
           {
             role: 'system',
@@ -43,7 +43,7 @@ Sé breve, clara y cordial en tus respuestas. Usá emojis solo si es útil (como
           },
         ],
         temperature: 0.5,
-         max_tokens: 500,
+         max_tokens: 200,
       });
 
       return completion.choices[0].message.content || 'Lo siento, no pude generar una respuesta.';

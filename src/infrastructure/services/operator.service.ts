@@ -1,45 +1,4 @@
 
-
-//----------------------ESTO FUNCIONA-------------------------------
-
-
-// import { Inject, Injectable } from '@nestjs/common';
-// import { MongoOperatorRepository } from '../repositories/mongo-operator.repository';
-// import { CreateOperatorDto } from 'src/domain/operators/dto/create-operator.dto';
-// import { Operator } from 'src/domain/operators/entities/operator.entity';
-// import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
-
-
-// @Injectable()
-// export class OperatorService {
-//   constructor(
-//     @Inject(OPERATOR_REPOSITORY)
-//     private readonly repository: MongoOperatorRepository) {}
-
-//   async create(dto: CreateOperatorDto) {
-//     const operator = new Operator(
-//       "",
-//       dto.name,
-//       dto.isAvailable ?? true,
-//       0,
-//       new Date(),
-//     );
-//     await this.repository.save(operator);
-//     return operator;
-//   }
-
-//   async getAvailable() {
-//     return this.repository.findAvailable();
-//   }
-
-//   async getById(id: string) {
-//     return this.repository.findById(id);
-//   }
-// }
-//---------------------------------------------------------------------------------------------
-
-
-
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateOperatorDto } from 'src/domain/operators/dto/create-operator.dto';
 import { OperatorRepository } from 'src/domain/operators/repositories/operator.repository';

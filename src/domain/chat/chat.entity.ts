@@ -1,6 +1,71 @@
+// export class ChatMessage {
+//   constructor(
+//     public readonly id: string ,
+//     public readonly userId: string,
+//     public readonly chatId: string,
+//     public readonly content: string,
+//     public readonly receiverId?: string,
+//     public readonly senderType: "CLIENT" | "SPECIALIST" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
+//     public readonly isRead: boolean = false,
+//     public readonly timestamp: Date = new Date(),
+//   ) {}
+
+//   markAsRead(): ChatMessage {
+//     return new ChatMessage(this.id, this.userId, this.chatId, this.content, this.receiverId, this.senderType, this.isRead, this.timestamp)
+//   }
+// }
+
+// export class Chat {
+//   constructor(
+//     public readonly id: string,
+//     public readonly status: ChatStatus,
+//     public readonly specialistId?: string,
+//      public readonly type?: 'IA' | 'HUMAN',     // nuevo
+//     public readonly  userId?: string  ,
+//     public readonly createdAt: Date = new Date(),
+//     public readonly updatedAt: Date = new Date(),
+//   ) {}
+
+//  assignSpecialist(specialistId: string): Chat {
+//   return new Chat(
+//     this.id,
+//     ChatStatus.ACTIVE,
+//     specialistId,
+//     this.type,
+//     this.userId,
+//     this.createdAt,
+//     new Date()
+//   );
+// }
+// close(): Chat {
+//   return new Chat(
+//     this.id,
+//     ChatStatus.CLOSED,
+//     this.specialistId,
+//     this.type,
+//     this.userId,
+//     this.createdAt,
+//     new Date()
+//   );
+// }
+
+// }
+
+// export enum ChatStatus {
+//   WAITING = "WAITING",
+//   ACTIVE = "ACTIVE",
+//   CLOSED = "CLOSED",
+// }
+
+
+
+
+
+//-----------------------------PRUEBA---------------------------------------------------------------
+
 export class ChatMessage {
   constructor(
-    public readonly id: string ,
+    public readonly id: string,
     public readonly userId: string,
     public readonly chatId: string,
     public readonly content: string,
@@ -11,7 +76,16 @@ export class ChatMessage {
   ) {}
 
   markAsRead(): ChatMessage {
-    return new ChatMessage(this.id, this.userId, this.chatId, this.content, this.receiverId, this.senderType, this.isRead, this.timestamp)
+    return new ChatMessage(
+      this.id,
+      this.userId,
+      this.chatId,
+      this.content,
+      this.receiverId,
+      this.senderType,
+      this.isRead,
+      this.timestamp,
+    )
   }
 }
 
@@ -20,16 +94,25 @@ export class Chat {
     public readonly id: string,
     public readonly status: ChatStatus,
     public readonly specialistId?: string,
+    public readonly type?: "IA" | "HUMAN", // nuevo
+    public readonly userId?: string,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date(),
   ) {}
 
   assignSpecialist(specialistId: string): Chat {
-    return new Chat(this.id, ChatStatus.ACTIVE, specialistId, this.createdAt, new Date())
+    return new Chat(
+      this.id,
+      ChatStatus.ACTIVE,
+      specialistId,
+      "HUMAN", // ✅ Cambiar a HUMAN cuando se asigna especialista
+      this.userId,
+      this.createdAt,
+      new Date(),
+    )
   }
-
   close(): Chat {
-    return new Chat(this.id, ChatStatus.CLOSED, this.specialistId, this.createdAt, new Date())
+    return new Chat(this.id, ChatStatus.CLOSED, this.specialistId, this.type, this.userId, this.createdAt, new Date())
   }
 }
 
