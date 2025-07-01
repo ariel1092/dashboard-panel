@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { User } from 'src/domain/auth/entities/user.entity';
+import { User, UserRole } from 'src/domain/auth/entities/user.entity';
 
 import { TokenService } from 'src/infrastructure/services/token.service';
 import { UserAlreadyExistsException } from 'src/domain/exceptions/user-already-exists.exception';
@@ -8,7 +8,10 @@ import { UserRepository } from 'src/domain/repositories/user.repository';
 import { Encrypter } from 'src/domain/auth/services/encrypter.service';
 import { ENCRYPTER } from 'src/domain/token/encrypter.token';
 import { TOKEN_SERVICE } from 'src/domain/token/token-service.token';
-import { RegisterDto } from './dto/register.dto';
+
+import { UserResponseDto } from './dto/user-response.dto';
+
+
 
 @Injectable()
 export class RegisterUserUseCase {
@@ -21,11 +24,12 @@ export class RegisterUserUseCase {
   async execute(
     email: string,
     password: string,
-  ): Promise<{ user: RegisterDto; token: string }> {
+    role: UserRole,
+   
+  ): Promise<{ user: UserResponseDto; token: string }> {
    
     // Verificar si el usuario ya existe
     const existingUser = await this.userRepository.findByEmail(email);
-    console.log('🔍 Usuario ya existente?', existingUser);
     if (existingUser) {
       console.log('⚠️ Usuario ya existe');
       throw new UserAlreadyExistsException('El usuario ya existe');
@@ -33,27 +37,31 @@ export class RegisterUserUseCase {
 
     // Encriptar la contraseña
     const hashedPassword = await this.encrypter.hashPassword(password);
-    console.log('🔐 Password encriptado:', hashedPassword);
     const newUser = new User(
-      '',               // id vacío; Mongoose lo va a generar
+      '',        // id (se generará al guardar en la base de datos)
       email,            // email
       hashedPassword,   // password (hasheada)
-      'vendedor',       // rol
-      new Date(),       // createdAt
-      new Date(),       // updatedAt
+      role,   // rol
+           // updatedAt
     );
-    console.log('🧱 Entidad User construida:', newUser);
+  
     // Guardar el nuevo usuario en la base de datos
     const savedUser = await this.userRepository.create(newUser);
-    console.log('🧱 Usuario creado (entidad):', savedUser);
+
     if (!savedUser.id) {
       throw new Error('El usuario guardado no tiene un ID');
     }
     // Generar el JWT
-    const token = this.tokenService.generateToken(savedUser.id);
-    //Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
-    //Type 'undefined' is not assignable to type 'string'.ts(2345)
- console.log('🔐 Token generado:', token);
-    return { user: savedUser, token };
+const token = this.tokenService.generateToken({
+  id: savedUser.id,
+  role: savedUser.role,
+});
+     const { password: _, ...userWithoutPassword } = savedUser;
+ console.log('✅ Usuario registrado exitosamente');
+     return {
+       user: userWithoutPassword,
+       token,
+      };
+     
   }
 }

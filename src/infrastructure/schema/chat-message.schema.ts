@@ -17,8 +17,8 @@ export class ChatMessageModel {
   @Prop()
   receiverId?: string
 
-   @Prop({ required: true, enum: ["CLIENT", "SPECIALIST", "BOT", "AI", "SYSTEM"] })
-  senderType: "CLIENT" | "SPECIALIST" | "BOT" | "AI" | "SYSTEM"
+   @Prop({ required: true, enum: ["CLIENT", "OPERADOR", "BOT", "AI", "SYSTEM"] })
+  senderType: "CLIENT" | "OPERADOR" | "BOT" | "AI" | "SYSTEM"
 
   @Prop({ default: false })
   isRead: boolean

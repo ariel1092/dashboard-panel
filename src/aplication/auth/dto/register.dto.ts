@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, Matches, IsIn } from 'class-validator';
+import { UserRole } from 'src/domain/auth/entities/user.entity';
 
 export class RegisterDto {
   @ApiProperty({
@@ -19,4 +20,14 @@ export class RegisterDto {
     message: 'La contraseña debe tener mayúscula, minúscula, número y símbolo',
   })
   password: string;
+  @ApiProperty({
+    description: 'Rol del usuario',
+    example: 'CLIENT',
+    enum: ['ADMIN', 'CLIENT', 'OPERADOR'],
+  })
+  @IsString()
+  @IsIn(['ADMIN', 'CLIENT', 'OPERADOR'], {
+    message: 'El rol debe ser ADMIN, CLIENT u OPERADOR',
+  })
+  role: UserRole;
 }

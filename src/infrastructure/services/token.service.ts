@@ -5,8 +5,9 @@ import * as jwt from 'jsonwebtoken';
 export class TokenService implements TokenService {
   private readonly JWT_SECRET = process.env.JWT_SECRET || 'supersecreto';
 
-  generateToken(userId: string): string {
-    return jwt.sign({ id: userId }, this.JWT_SECRET, { expiresIn: '1d' });
+  // Cambiar el método para aceptar payload genérico
+  generateToken(payload: Record<string, any>): string {
+    return jwt.sign(payload, this.JWT_SECRET, { expiresIn: '1d' });
   }
 
   verifyToken(token: string): any {

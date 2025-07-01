@@ -5,6 +5,7 @@ import { OperatorRepository } from 'src/domain/operators/repositories/operator.r
 import { Operator, OperatorState } from 'src/domain/operators/entities/operator.entity';
 import { AssignOperatorToChatUseCase } from 'src/aplication/operators/use-cases/assign-operator.use-case';
 import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
+import { RegisterUserUseCase } from 'src/aplication/auth/register-user.usecase';
 
 
 @Injectable()
@@ -13,6 +14,7 @@ export class OperatorService {
     @Inject(OPERATOR_REPOSITORY)
     private readonly operatorRepo: OperatorRepository,
     private readonly assignOperatorUseCase: AssignOperatorToChatUseCase,
+     private readonly registerUserUseCase: RegisterUserUseCase, 
 
   ) {}
 
@@ -23,9 +25,20 @@ export class OperatorService {
        dto.isAvailable ?? true,
        0,
        new Date(),
+       (dto.role as 'operador') ?? 'operador'
      );
      await this.operatorRepo.save(operator);
-     return operator;
+     const user = await this.registerUserUseCase.execute(
+    dto.email,
+    dto.password,
+    'OPERADOR'  // rol de usuario para el token y auth
+  );
+
+  // 3. Retornar ambos datos (opcional, para que el admin sepa que se creó todo bien)
+  return {
+    operator,
+    user,
+  };
    }
 
   async getAvailable(): Promise<Operator[]> {

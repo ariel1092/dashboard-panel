@@ -20,6 +20,7 @@ import { User, UserSchema } from '../schema/user.schema';
     LoginUserUseCase,
     EncrypterService,
     TokenService,
+    
     {
       provide: USER_REPOSITORY,
       useClass: MongoUserRepository,

@@ -3,10 +3,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {  UserDocument } from '../schema/user.schema';
 
-import { User, UserRole } from 'src/domain/auth/entities/user.entity';
+
 import { UserRepository } from 'src/domain/repositories/user.repository';
+import { UserDocument } from '../schema/user.schema';
+import { User } from 'src/domain/auth/entities/user.entity';
 
 
 @Injectable()
@@ -38,7 +39,6 @@ export class MongoUserRepository implements UserRepository {
         email: user.email,
         password: user.password,
         role: user.role,
-        updatedAt: new Date(),
       },
       { new: true }
     ).exec();
@@ -48,13 +48,10 @@ export class MongoUserRepository implements UserRepository {
 
   private toDomain(userDoc: UserDocument): User {
     return new User(
-      //'userDoc._id' is of type 'unknown'.ts(18046)
       userDoc.id,
       userDoc.email,
       userDoc.password,
-      userDoc.role,
-      userDoc.createdAt,
-      userDoc.updatedAt,
+      userDoc.role
     );
   }
 }

@@ -70,7 +70,7 @@ export class ChatMessage {
     public readonly chatId: string,
     public readonly content: string,
     public readonly receiverId?: string,
-    public readonly senderType: "CLIENT" | "SPECIALIST" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
+    public readonly senderType: "CLIENT" | "OPERADOR" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
     public readonly isRead: boolean = false,
     public readonly timestamp: Date = new Date(),
   ) {}

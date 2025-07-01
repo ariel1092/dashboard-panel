@@ -18,7 +18,7 @@ export class SendMessageUseCase {
     chatId: string,
     content: string,
     receiverId?: string,
-    senderType: "CLIENT" | "SPECIALIST" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
+    senderType: "CLIENT" | "OPERADOR" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
   ): Promise<ChatMessage> {
     // Verificar que el chat existe
     const chat = await this.repository.getChatById(chatId)

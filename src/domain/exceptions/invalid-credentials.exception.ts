@@ -1,6 +1,11 @@
-export class InvalidCredentialsException extends Error {
-    constructor(message: string = 'Credenciales inválidas') {
-      super(message);
-      this.name = 'InvalidCredentialsException';
-    }
+import { UnauthorizedException } from '@nestjs/common';
+
+export class InvalidCredentialsException extends UnauthorizedException {
+  constructor() {
+    super({
+      statusCode: 401,
+      message: 'Credenciales inválidas',
+      code: 'INVALID_CREDENTIALS',
+    });
   }
+}

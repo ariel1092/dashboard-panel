@@ -1,13 +1,16 @@
 // src/infrastructure/controllers/admin.controller.ts
 
-import { Controller, Post, Logger } from '@nestjs/common';
+import { Controller, Post, Logger, UseGuards } from '@nestjs/common';
 import { NormalizePhoneNumbersUseCase } from 'src/aplication/clients/use-cases/normalize-phone-numbers.usecase';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { RolesGuard } from '../guards/roles.guard';
+import { JwtAuthGuard } from '../guards/jwt.guard';
+import { Roles } from '../decorators/roles.decorator';
 
-
+@UseGuards(JwtAuthGuard, RolesGuard )
+@Roles('admin')
 @Controller('admin')
 @ApiTags('Admin')
-// @UseGuards(JwtAuthGuard) // Asegúrate de proteger este endpoint
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
 

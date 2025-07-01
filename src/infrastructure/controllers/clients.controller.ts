@@ -11,6 +11,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateClientUseCase } from 'src/aplication/clients/use-cases/create-client.usecase';
 import { UpdateClientUseCase } from 'src/aplication/clients/use-cases/update-client.use-case';
@@ -31,9 +32,11 @@ import {
 import { CreateClientDto } from 'src/aplication/clients/DTO/create-client.dto';
 import { UpdateClientDto } from 'src/aplication/clients/DTO/update-client.dto';
 import { Client } from 'src/domain/clients/entities/client.entity';
+import { JwtAuthGuard } from '../guards/jwt.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../decorators/roles.decorator';
 
-
-
+// @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('clients')
 @ApiTags('Clients')
 export class ClientController {
@@ -53,7 +56,7 @@ export class ClientController {
 
   @Get('exists')
   @ApiOperation({ summary: 'Check if a client exists by phone (query param)' })
-  @ApiQuery({ name: 'phone', description: 'Phone number', required: true })
+  @ApiQuery({ name: 'phone', required: true })
   async exists(@Query('phone') phone: string) {
     if (!phone) {
       throw new BadRequestException('El parámetro phone es obligatorio');
@@ -63,6 +66,7 @@ export class ClientController {
   }
 
   @Post()
+  // @Roles('admin')
   @ApiOperation({ summary: 'Create a new client' })
   @ApiBody({ type: CreateClientDto })
   async create(@Body() data: CreateClientDto) {
@@ -70,93 +74,68 @@ export class ClientController {
   }
 
   @Get()
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Get all clients' })
   async findAll() {
-    try {
-      const clients = await this.getAllClients.execute();
-
-      return clients;
-    } catch (error) {
-      console.error('❌ Error en GET /clients:', error);
-      throw error; // para que Nest lo imprima también con stack
-    }
+    const clients = await this.getAllClients.execute();
+    return clients;
   }
 
   @Get('count')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Get the total number of clients' })
   async count() {
     return this.countClients.execute();
   }
 
   @Get('phone/:phone')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Find a client by phone number' })
-  @ApiParam({ name: 'phone', description: 'Phone number' })
+  @ApiParam({ name: 'phone' })
   async findByPhoneNumber(@Param('phone') phone: string) {
     const result = await this.findByPhone.execute(phone);
-    if (!result) {
-      // Si no encontró el cliente, lanza un 404 con JSON:
-      throw new NotFoundException(
-        `Cliente con teléfono ${phone} no encontrado`,
-      );
-    }
+    if (!result) throw new NotFoundException(`Cliente con teléfono ${phone} no encontrado`);
     return result;
   }
 
   @Get('email/:email')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Find a client by email address' })
-  @ApiParam({ name: 'email', description: 'Email address' })
+  @ApiParam({ name: 'email' })
   async findByEmailAddress(@Param('email') email: string) {
-    this.logger.debug(`Received GET /clients/email/${email}`);
-    try {
-      const result = await this.findByEmail.execute(email);
-      this.logger.debug(`Result for email=${email}: ${JSON.stringify(result)}`);
-      return result;
-    } catch (error) {
-      this.logger.error(
-        `Error in findByEmailAddress(${email}): ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Error interno al buscar por email',
-      );
-    }
+    const result = await this.findByEmail.execute(email);
+    return result;
   }
 
   @Get(':id')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Get a client by ID' })
-  @ApiParam({ name: 'id', description: 'Client ID' })
+  @ApiParam({ name: 'id' })
   async findOne(@Param('id') id: string) {
-    this.logger.debug(`Received GET /clients/${id}`);
-    try {
-      const result = await this.findById.execute(id);
-      this.logger.debug(`Result for id=${id}: ${JSON.stringify(result)}`);
-      return result;
-    } catch (error) {
-      this.logger.error(
-        `Error in findOne(${id}): ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException('Error interno al buscar por ID');
-    }
+    const result = await this.findById.execute(id);
+    return result;
   }
-  
+
   @Put(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Update a client by ID' })
-  @ApiParam({ name: 'id', description: 'Client ID' })
+  @ApiParam({ name: 'id' })
   async update(@Param('id') id: string, @Body() data: UpdateClientDto) {
     return this.updateClient.execute(id, data);
   }
-  
+
   @Delete(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Delete a client by ID' })
-  @ApiParam({ name: 'id', description: 'Client ID' })
+  @ApiParam({ name: 'id' })
   async remove(@Param('id') id: string) {
     return this.disableClient.execute(id);
   }
 
   // ==================== ENDPOINTS DE PRUEBA ====================
 
-  @Get('debug/test-normalization')
+ @Get('debug/test-normalization')
+  @Roles('admin')
   @ApiOperation({ summary: 'Probar normalización de teléfonos (TEMPORAL)' })
   async testNormalization() {
     this.logger.log('🧪 Iniciando prueba de normalización');
@@ -217,7 +196,8 @@ export class ClientController {
     }
   }
 
-  @Get('debug/fix-specific/:phone')
+ @Get('debug/fix-specific/:phone')
+  @Roles('admin')
   @ApiOperation({ summary: 'Diagnosticar y corregir cliente específico' })
   @ApiParam({ name: 'phone', description: 'Phone number to fix' })
   async fixSpecificClient(@Param('phone') phone: string) {
@@ -294,7 +274,8 @@ export class ClientController {
     }
   }
 
-  @Post('debug/normalize-all')
+ @Post('debug/normalize-all')
+  @Roles('admin')
   @ApiOperation({ summary: 'Normalizar todos los números de teléfono' })
   async normalizeAllPhones() {
     this.logger.log('🚀 Iniciando normalización masiva de teléfonos');

@@ -17,15 +17,15 @@ export enum ChatStatus {
 
 export enum UserRole {
   ADMIN = 'admin',
-  VENDEDOR = 'vendedor', 
+  CLIENT = 'client', 
   ANALISTA = 'analista',
-  OPERADOR = 'operador'
+  OPERADOR = 'specialist'
 }
 
 // Roles que pueden usar chats (crear y participar)
-export const CHAT_USER_ROLES: UserRole[] = [
+export const CHAT_USER_ROLES: UserRole[]  = [
   UserRole.ADMIN,
-  UserRole.VENDEDOR,
+  UserRole.CLIENT,
   UserRole.OPERADOR
 ];
 

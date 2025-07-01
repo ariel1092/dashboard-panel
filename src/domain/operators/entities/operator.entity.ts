@@ -19,18 +19,21 @@ export class Operator {
   public activeChats: number;
   public lastMessageTime: Date;
   public state: OperatorState = OperatorState.AVAILABLE;
+  public role: 'operador' = 'operador'; // 👈 CAMPO NUEVO
 
   constructor(
     id: string | null | undefined,
     name: string,
     isAvailable: boolean,
     activeChats: number,
-    lastMessageTime: Date
+    lastMessageTime: Date,
+    role: 'operador' = 'operador' // 👈 NUEVO PARÁMETRO
   ) {
     this.id = id && id !== '' ? id : new Types.ObjectId().toHexString();
     this.name = name;
     this.isAvailable = isAvailable;
     this.activeChats = activeChats;
     this.lastMessageTime = lastMessageTime;
+    this.role = role;
   }
 }

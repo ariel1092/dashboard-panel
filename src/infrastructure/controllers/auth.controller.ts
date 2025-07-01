@@ -21,8 +21,8 @@ export class AuthController {
   @ApiBody({ type: RegisterDto })
   async register(@Body() body: RegisterDto) {
 
-    const { email, password } = body;
-    const result = await this.registerUserUseCase.execute(email, password);
+    const { email, password, role } = body;
+    const result = await this.registerUserUseCase.execute(email, password,role);
     return { message: 'Usuario registrado con éxito', ...result };
   }
 

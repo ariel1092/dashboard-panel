@@ -9,7 +9,9 @@ import { UserRepository } from 'src/domain/repositories/user.repository';
 import { Encrypter } from 'src/domain/auth/services/encrypter.service';
 import { ENCRYPTER } from 'src/domain/token/encrypter.token';
 import { TOKEN_SERVICE } from 'src/domain/token/token-service.token';
-import { LoginDto } from './dto/login.dto';
+
+import { UserNotFoundException } from 'src/domain/exceptions/User-NotFound.Exception';
+import { UserResponseDto } from './dto/user-response.dto';
 
 
 @Injectable()
@@ -22,37 +24,46 @@ export class LoginUserUseCase {
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService
   ) {}
 
-  async execute(email: string, password: string): Promise<{ user: LoginDto; token: string }> {
-    console.log('📩 Email recibido:', email);
-    console.log('🔍 Buscando usuario por password:', password);
+  async execute(email: string, password: string): Promise<{ user: UserResponseDto; token: string }> {
+  
     const user = await this.userRepository.findByEmail(email);
- 
-   
-    
-    console.log('🔍 Usuario encontrado:', user);
- 
+
   
     if (!user) {
-      throw new InvalidCredentialsException();
+      console.log('⚠️ Usuario no encontrado');
+      throw new UserNotFoundException();
     }
-  console.log('🔐 Verificando contraseña...');
+
   
     const passwordMatch = await this.encrypterService.comparePassword(password, user.password);
-    console.log('🔐 ¿Password coincide?:', passwordMatch);
   
     if (!passwordMatch) {
+      console.log('⚠️ Credenciales inválidas');
       throw new InvalidCredentialsException();
     }
     if (!user.id) {
       throw new Error('El ID del usuario es undefined. No se puede generar el token.');
     }
- 
-    const token = this.tokenService.generateToken(user.id);
-    /**Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
-  Type 'undefined' is not assignable to type 'string'.ts(2345) */
-  
+
+const payload = {
+  sub: user.id, // ✅ importante: esto es lo que espera NestJS
+  role: user.role,
+};
+
+  // Cambiás para pasar el payload completo
+  const token = await this.tokenService.generateToken(payload);
+
+
   console.log('🎫 Token generado:', token);
+   const { password: _, ...userWithoutPassword } = user;
+
+    const userResponse: UserResponseDto = {
+      id: userWithoutPassword.id,
+      email: userWithoutPassword.email,
+      role: userWithoutPassword.role,
   
-    return { user, token };
+    };
+
+    return { user: userResponse, token };
   }
 }  

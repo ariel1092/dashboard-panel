@@ -1,54 +1,75 @@
-import { Injectable } from '@nestjs/common';
-import { LlamaServicePort } from 'src/domain/IA-llama/llama.service.port';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { OpenAI } from 'openai';
+import { LlamaServicePort } from 'src/domain/IA-llama/llama.service.port';
 
 @Injectable()
 export class LlamaApiService implements LlamaServicePort {
-  private openai = new OpenAI({
+  private readonly logger = new Logger(LlamaApiService.name);
+
+  private readonly openai = new OpenAI({
     apiKey: process.env.OPENROUTER_API_KEY,
     baseURL: 'https://openrouter.ai/api/v1',
     defaultHeaders: {
-      'HTTP-Referer': 'http://localhost:3001', // Cambialo si usás otra URL en frontend
-      'X-Title': 'depilzoneKey', // Nombre personalizado para identificar tu app en OpenRouter
+      'HTTP-Referer': process.env.APP_URL || 'http://localhost:3001',
+      'X-Title': 'DepilZONE Chatbot',
     },
   });
 
+  private readonly SYSTEM_PROMPT = `
+Sos un asesor virtual con más de 30 años de experiencia en ventas, especializado en servicios estéticos para la clínica DepilZONE.
+
+Tu misión es asesorar y convencer a los clientes con respuestas claras, breves y efectivas, como lo haría un vendedor profesional. Siempre buscás cerrar la venta o agendar un turno.
+
+Tu enfoque debe ser:
+- Empático y cordial (pero no robótico).
+- Específico en los beneficios del servicio.
+- Persuasivo: destacá promociones, precios accesibles, o calidad tecnológica.
+- Terminá con una llamada a la acción (¿Querés que te pase info para sacar turno?, ¿Te gustaría aprovechar esta promo?, etc).
+
+Temas que podés tratar:
+- Depilación láser (zonas, precios, cantidad de sesiones, promociones).
+- Blanqueamiento íntimo láser.
+- Formas de pago y turnos.
+
+⚠️ Si el cliente pregunta algo fuera de estos temas, respondé breve y derivalo a un asesor humano.
+
+Ejemplo de estilo:
+"¡Genial! La depilación de piernas completas está en promo con 6 sesiones por $1.200. Usamos láser de última generación, seguro y rápido. ¿Te paso el enlace para agendar tu primera sesión?"
+
+No uses explicaciones largas ni lenguaje técnico innecesario. Sos un vendedor: cerrá la venta 😉.
+`.trim();
+
   async generateMessage(prompt: string): Promise<string> {
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: 'mistralai/mistral-7b-instruct', // Podés cambiar a otro modelo si lo necesitás
+      const response = await this.openai.chat.completions.create({
+        model: 'meta-llama/llama-3-70b-instruct', // modelo gratuito y poderoso
         messages: [
           {
             role: 'system',
-            content: `
-Sos un chatbot profesional de atención al cliente para una clínica estética llamada DepilZONE.
-
-Tu única tarea es responder consultas sobre los productos y servicios estéticos que ofrece la empresa, como:
-- Depilación láser (zonas, cantidad de sesiones, precios, promociones).
-- Blanqueamiento íntimo láser.
-- Formas de pago disponibles (efectivo, débito, crédito, transferencias).
-- Turnos, promociones vigentes o contacto.
-
-⚠️ No respondas preguntas sobre temas médicos, consejos de salud general, temas personales, clima, política, chistes ni ningún otro tema que no tenga relación directa con los servicios estéticos de la empresa.
-
-Si un cliente hace una pregunta fuera de tu ámbito, respondé brevemente y derivá al operador con algo como:
-"⚠️ Solo puedo responder consultas sobre nuestros servicios estéticos. Si necesitás otra ayuda, un asesor humano podrá asistirte."
-
-Sé breve, clara y cordial en tus respuestas. Usá emojis solo si es útil (como ✅ o ⚠️).
-          `.trim(),
+            content: this.SYSTEM_PROMPT,
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.5,
-         max_tokens: 200,
+        temperature: 0.7,
+        max_tokens: 600,
+        top_p: 0.9,
+        presence_penalty: 0.3,
+        frequency_penalty: 0.3,
       });
 
-      return completion.choices[0].message.content || 'Lo siento, no pude generar una respuesta.';
+      const message = response.choices?.[0]?.message?.content;
+
+      if (!message) {
+        this.logger.warn('Respuesta vacía del modelo.');
+        throw new InternalServerErrorException('⚠️ No se pudo generar una respuesta válida.');
+      }
+
+      return message.trim();
     } catch (error) {
-      console.error('Error al generar mensaje con OpenAI:', error);
+      this.logger.error('Error al generar mensaje con OpenRouter:', error);
       return '⚠️ Lo siento, ocurrió un error al generar la respuesta.';
     }
   }

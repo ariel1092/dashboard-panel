@@ -1,9 +1,9 @@
 // application/services/user.service.ts
 
 import { Inject, Injectable } from '@nestjs/common';
-import { User } from 'src/domain/auth/entities/user.entity';
 import { UserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY } from 'src/domain/token/user.repository.token';
+import { User } from '../schema/user.schema';
 
 @Injectable()
 export class UserService {

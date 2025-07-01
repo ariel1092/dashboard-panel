@@ -3,8 +3,9 @@ import { Socket } from "socket.io";
 
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from "src/domain/repositories/user.repository";
+import { User } from "src/infrastructure/schema/user.schema";
 
-import { User } from "src/domain/auth/entities/user.entity";
+
 
 @Injectable()
 export class ConnectUserUseCase {
