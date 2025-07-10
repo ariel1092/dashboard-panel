@@ -12,7 +12,7 @@ async function bootstrap() {
 
   //  Habilitar CORS si tenés frontend aparte
 app.enableCors({
-  origin: ['http://localhost:3001', 'https://amritb.github.io'],
+  origin: ['http://localhost:3000', 'https://amritb.github.io'],
   credentials: false,
 })
  app.useWebSocketAdapter(new IoAdapter(app));

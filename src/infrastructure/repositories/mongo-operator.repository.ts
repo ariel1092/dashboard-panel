@@ -1,4 +1,4 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 
@@ -37,38 +37,38 @@ export class MongoOperatorRepository implements OperatorRepository {
     }
   }
 
-  async findById(id: string): Promise<Operator | null> {
-    try {
-      this.logger.log(`Finding operator by ID: ${id}`);
+async findById(id: string): Promise<Operator | null> {
+  try {
+    this.logger.log(`Finding operator by ID: ${id}`);
 
-      if (!id || typeof id !== 'string') {
-        throw new Error('Invalid operator ID provided');
-      }
-
-      const doc = await this.model.findById(id).exec();
-      
-      if (!doc) {
-        this.logger.warn(`Operator not found with ID: ${id}`);
-        return null;
-      }
-
-      this.logger.log(`Found operator: ${doc.name}`);
-      return this.mapToEntity(doc);
-
-    } catch (error) {
-      if (error.name === 'CastError') {
-        this.logger.warn(`Invalid ObjectId format: ${id}`);
-        return null;
-      }
-
-      this.logger.error(`Failed to find operator by ID: ${id}`, error.stack);
-      throw new InternalServerErrorException(
-        'Error retrieving operator',
-        error.message
-      );
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid operator ID provided');
     }
-  }
 
+    // Validar formato ObjectId
+    if (!Types.ObjectId.isValid(id)) {
+      this.logger.warn(`Invalid ObjectId format: ${id}`);
+      return null;
+    }
+
+    const doc = await this.model.findById(id).exec();
+
+    if (!doc) {
+      this.logger.warn(`Operator not found with ID: ${id}`);
+      return null;
+    }
+
+    this.logger.log(`Found operator: ${doc.name}`);
+    return this.mapToEntity(doc);
+
+  } catch (error) {
+    this.logger.error(`Failed to find operator by ID: ${id}`, error.stack);
+    throw new InternalServerErrorException(
+      'Error retrieving operator',
+      error.message
+    );
+  }
+}
   async save(operator: Operator): Promise<void> {
     try {
       this.logger.log(`Saving new operator: ${operator.name}`);
@@ -76,6 +76,7 @@ export class MongoOperatorRepository implements OperatorRepository {
       this.validateOperator(operator);
 
       await this.model.create({
+        _id:operator.id,
         name: operator.name,
         isAvailable: operator.isAvailable,
         activeChats: operator.activeChats,
@@ -214,4 +215,21 @@ export class MongoOperatorRepository implements OperatorRepository {
       throw new Error('Active chats count cannot exceed 50');
     }
   }
+  async updateStatus(userId: string, isAvailable: boolean): Promise<void> {
+  try {
+    const updated = await this.model.findByIdAndUpdate(
+      userId,
+      { isAvailable, lastMessageTime: new Date() },
+      { new: true }
+    );
+    if (!updated) {
+      this.logger.warn(`Operator not found when updating status: ${userId}`);
+    } else {
+      this.logger.log(`Operator ${userId} status updated to: ${isAvailable}`);
+    }
+  } catch (error) {
+    this.logger.error(`Error updating status for operator ${userId}`, error.stack);
+    throw new InternalServerErrorException('Error updating operator status');
+  }
+}
 }

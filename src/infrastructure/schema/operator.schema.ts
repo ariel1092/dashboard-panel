@@ -5,6 +5,8 @@ export type OperatorDocument = OperatorModel & Document;
 
 @Schema({ timestamps: true }) // esto te da `createdAt` y `updatedAt` automáticos
 export class OperatorModel {
+  @Prop({ type: String })
+_id: string;
   @Prop({ required: true })
   name: string;
 

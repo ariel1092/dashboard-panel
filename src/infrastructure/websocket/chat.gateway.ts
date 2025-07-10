@@ -22,8 +22,11 @@ import { FinishChatUseCase } from 'src/aplication/chat/use-cases/finish-chat.use
 import { RateChatUseCase } from 'src/aplication/chat/use-cases/rate-chat.use-case';
 import { RateChatDto } from 'src/aplication/chat/dto/rate-chat.dto';
 import { FinishChatDto } from 'src/aplication/chat/dto/finish-chat.dto';
-import { WsRolesGuard } from '../guards/ws-jwt.guard';
+
 import { JwtService } from '@nestjs/jwt';
+import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
+import { Operator } from 'src/domain/operators/entities/operator.entity';
+import { OperatorRepository } from 'src/domain/operators/repositories/operator.repository';
 
 
 interface AuthenticatedSocket extends Socket {
@@ -39,7 +42,7 @@ interface ConnectedUser {
   connectedAt: Date
   currentChatId?: string
 }
-@UseGuards(WsRolesGuard) // Para proteger eventos, aunque el handleConnection no se protege con guard por defecto
+// @UseGuards(WsRolesGuard) // Para proteger eventos, aunque el handleConnection no se protege con guard por defecto
 @WebSocketGateway({
   cors: {
     origin: 'http://localhost:3000',
@@ -54,12 +57,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(ChatGateway.name);
   private connectedUsers = new Map<string, ConnectedUser>();
+  private activeSockets = new Map<string, Socket>();
   private operatorChats = new Map<string, string[]>();
   private chatOperatorMap = new Map<string, string>();
 
   constructor(
     @Inject(CHAT_REPOSITORY)
     private readonly chatRepository: ChatRepository,
+    @Inject(OPERATOR_REPOSITORY)
+    private readonly operatorRepository: OperatorRepository,
     private readonly sendMessageUseCase: SendMessageUseCase,
     private readonly createChatUseCase: CreateChatUseCase,
     private readonly assignOperatorUseCase: AssignOperatorToChatUseCase,
@@ -70,9 +76,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService, // inyectar JwtService para verificar token en conexión
   ) {}
 
-  async handleConnection(client: AuthenticatedSocket) {
+async handleConnection(client: AuthenticatedSocket) {
   try {
-    console.log('🔌 [ChatGateway] Nueva conexión entrante. client.data antes:', client.data);
+    console.log('🔌 [ChatGateway] Nueva conexión entrante. client.id:', client.id);
+    console.log('📨 client.handshake.auth:', client.handshake.auth);
+    console.log('📨 client.handshake.headers:', client.handshake.headers);
 
     const token = client.handshake.auth?.token;
     if (!token) {
@@ -81,16 +89,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Verificar token y obtener payload
     const payload = this.jwtService.verify(token);
     console.log('✅ Token verificado en handleConnection:', payload);
 
-    // Setear user en client.data
     const userId = payload.sub || payload.id;
     const userRole = payload.role?.toUpperCase();
 
     if (!userId || !userRole) {
-      this.logger.warn(`Cliente ${client.id} desconectado: Falta userId o role.`);
+      console.warn(`⚠️ Cliente ${client.id} desconectado: Falta userId o role en payload`);
+      console.warn('📦 Payload recibido:', payload);
       client.disconnect();
       return;
     }
@@ -99,8 +106,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.userId = userId;
     client.userRole = userRole;
 
-    console.log('🔒 client.data.user seteado en handleConnection:', client.data.user);
+    console.log('🔒 client.data.user seteado:', client.data.user);
 
+    // Verificamos si ya había una conexión anterior para este userId
+    const existingConnection = this.connectedUsers.get(userId);
+    if (existingConnection) {
+      console.log(`🔄 Usuario ${userId} ya estaba conectado con socket ${existingConnection.socketId}`);
+
+      const oldSocket = this.activeSockets.get(existingConnection.socketId);
+      console.log('🔍 oldSocket encontrado:', !!oldSocket);
+
+      // Si es otro socket distinto al actual, desconectamos el viejo para evitar conflictos
+      if (oldSocket && oldSocket.id !== client.id) {
+        oldSocket.disconnect();
+        console.log(`✅ Socket anterior ${existingConnection.socketId} desconectado correctamente`);
+      }
+    }
+
+    // Guardamos la nueva conexión
     const connectedUser: ConnectedUser = {
       userId,
       socketId: client.id,
@@ -108,18 +131,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       connectedAt: new Date(),
     };
     this.connectedUsers.set(userId, connectedUser);
+    this.activeSockets.set(client.id, client);
 
+    // Unimos al cliente a sus rooms individuales y por rol
     await client.join(`user:${userId}`);
     await client.join(`role:${userRole}`);
 
-    this.logger.log(`✅ Usuario ${userId} conectado con socket ${client.id}`);
-
+    console.log(`✅ Usuario ${userId} conectado con socket ${client.id}`);
     this.broadcastConnectedUsers();
 
-    if (userRole === 'OPERADOR') {
-      console.log('🎧 [ChatGateway] Operador conectado, enviando dashboard');
-      await this.sendOperatorDashboard(client);
-    }
+  if (userRole === 'OPERADOR') {
+  console.log('🎧 [ChatGateway] Operador conectado, validando en base de datos');
+  
+  // Buscar operador en BD sin crear uno nuevo
+  console.log('[handleConnection] Buscando operador en BD con id:', userId);
+
+  const operator = await this.operatorRepository.findById(userId);
+  
+  if (!operator) {
+    console.warn(`[handleConnection] Operador no encontrado en BD: ${userId}. Desconectando socket.`);
+    client.emit('error', 'Operador no autorizado o no existe');
+    client.disconnect();
+    return;
+  }
+
+  // Actualizar status solo si existe
+  await this.operatorRepository.updateStatus(userId, true);
+  console.log('📊 [ChatGateway] Enviando dashboard a operador');
+  await this.sendOperatorDashboard(client);
+}
 
     if (userRole === 'CLIENTE') {
       console.log('👤 [ChatGateway] Cliente conectado, notificando a operadores');
@@ -128,36 +168,36 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         timestamp: new Date(),
       });
     }
-
   } catch (error) {
+    console.error('❌ Error en handleConnection:', error);
     this.logger.error(`❌ Error en conexión: ${error.message}`);
-    console.error(error);
     client.disconnect();
   }
 }
 
+async handleDisconnect(client: AuthenticatedSocket) {
+  const userId = client.userId;
+  const userRole = client.userRole;
 
-  handleDisconnect(client: AuthenticatedSocket) {
-    if (client.userId) {
-      console.log(`🔌 [ChatGateway] Usuario ${client.userId} desconectándose`);
-      this.connectedUsers.delete(client.userId);
+  console.log(`🔌 [ChatGateway] Usuario ${userId} desconectándose socketId: ${client.id}`);
 
-      if (client.userRole === 'OPERADOR') {
-        this.operatorChats.delete(client.userId!);
-        console.log(`🎧 [ChatGateway] Operador ${client.userId} desconectado`);
-      }
-
-      this.logger.log(`🔌 Usuario ${client.userId} desconectado`);
-      this.broadcastConnectedUsers();
-
-      if (client.userRole === 'CLIENT') {
-        this.server.to('role:OPERADOR').emit('client-disconnected', {
-          userId: client.userId,
-          timestamp: new Date(),
-        });
-      }
-    }
+  if (userId) {
+    this.connectedUsers.delete(userId);
+    console.log(`🗑️ [ChatGateway] Usuario ${userId} eliminado de connectedUsers`);
   }
+  if (this.activeSockets.has(client.id)) {
+    this.activeSockets.delete(client.id);
+    console.log(`🗑️ [ChatGateway] Socket ${client.id} eliminado de activeSockets`);
+  }
+
+  if (userRole === 'OPERADOR') {
+    console.log(`🎧 [ChatGateway] Operador ${userId} desconectado`);
+  }
+
+  this.logger.log(`🔌 Usuario ${userId} desconectado`);
+  this.broadcastConnectedUsers();
+}
+
 
   private async sendOperatorDashboard(client: AuthenticatedSocket) {
     const connectedClients = Array.from(this.connectedUsers.values()).filter((user) => user.userRole === "CLIENT")
@@ -312,127 +352,154 @@ private broadcastConnectedUsers() {
     }
   }
 
-  private async autoAssignOperator(chatId: string, clientId: string) {
-    try {
-      console.log(`🔄 [ChatGateway] Iniciando asignación automática para chat ${chatId}`)
+private async autoAssignOperator(chatId: string, clientId: string) {
+  
+  try {
+    console.log(`🔄 [ChatGateway] Iniciando asignación automática para chat ${chatId}`);
 
-      // Verificar operadores conectados
-      const connectedOperators = Array.from(this.connectedUsers.values()).filter(
-        (user) => user.userRole === "OPERADOR",
-      )
+    // Obtener operadores conectados vía WebSocket
+    const connectedOperators = Array.from(this.connectedUsers.values()).filter(
+      (user) => user.userRole === 'OPERADOR'
+    );
+    console.log(`🎧 [ChatGateway] Operadores conectados: ${connectedOperators.length}`);
 
-      console.log(`🎧 [ChatGateway] Operadores conectados: ${connectedOperators.length}`)
-
-      if (connectedOperators.length === 0) {
-        throw new Error("No hay operadores conectados")
-      }
-
-      const operator = await this.assignOperatorUseCase.execute()
-      console.log(`✅ [ChatGateway] Operador asignado:`, operator)
-
-      await this.assignSpecialistUseCaseToChat.execute(chatId, operator.id)
-
-      // Guardar mapeo de chat a operador
-      this.chatOperatorMap.set(chatId, operator.id)
-      console.log(`🗺️ [ChatGateway] Mapeo guardado: Chat ${chatId} -> Operador ${operator.id}`)
-
-      // Agregar chat a la lista del operador
-      const operatorChats = this.operatorChats.get(operator.id) || []
-      operatorChats.push(chatId)
-      this.operatorChats.set(operator.id, operatorChats)
-      console.log(`📋 [ChatGateway] Chats del operador ${operator.id}:`, operatorChats)
-
-      // Buscar el socket del operador
-      const operatorUser = this.connectedUsers.get(operator.id)
-      console.log(`🔍 [ChatGateway] Buscando operador conectado:`, {
-        operatorId: operator.id,
-        found: !!operatorUser,
-        socketId: operatorUser?.socketId,
-      })
-
-      if (operatorUser) {
-        const operatorSocket = this.server.sockets.sockets.get(operatorUser.socketId)
-        console.log(`🔌 [ChatGateway] Socket del operador encontrado:`, !!operatorSocket)
-
-        if (operatorSocket) {
-          await operatorSocket.join(`chat:${chatId}`)
-          console.log(`🏠 [ChatGateway] Operador unido al room chat:${chatId}`)
-
-          const history = await this.chatRepository.getMessagesByChatId(chatId)
-          console.log(`📚 [ChatGateway] Historial del chat: ${history.length} mensajes`)
-
-          // 🔧 EVENTO MEJORADO con más información
-          operatorSocket.emit("chatAutoAssigned", {
-            chatId,
-            clientId,
-            operatorId: operator.id,
-            operatorName: operator.name,
-            message: "🚨 Nuevo chat asignado automáticamente",
-            history: history.map((msg) => ({
-              id: msg.id,
-              content: msg.content,
-              sender: msg.senderType,
-              timestamp: msg.timestamp,
-              chatId: msg.chatId,
-              senderName: this.getSenderName(msg.senderType, msg.userId),
-            })),
-            timestamp: new Date(),
-          })
-
-          console.log(`📤 [ChatGateway] Evento chatAutoAssigned enviado al operador ${operator.id}`)
-
-          // Actualizar dashboard del operador
-          this.sendOperatorDashboard(operatorSocket as AuthenticatedSocket)
-        }
-      }
-
-      // Notificar al cliente sobre la asignación
-      this.emitSpecialistAssigned(chatId, operator.id)
-      this.emitChatStatusChange(chatId, "ESCALATED")
-
-      // Mensaje del sistema
-      const systemMessage = await this.sendMessageUseCase.execute(
-        "system",
-        chatId,
-        `🎧 ${operator.name} se ha unido al chat. La IA ya no responderá automáticamente.`,
-        undefined,
-        "SYSTEM",
-      )
-
-      this.server.to(`chat:${chatId}`).emit("newMessage", {
-        ...systemMessage,
-        timestamp: new Date(),
-      })
-
-      // 🔧 NOTIFICAR A TODOS LOS OPERADORES sobre la asignación
-      this.server.to("role:OPERADOR").emit("operatorAssigned", {
-        chatId,
-        clientId,
-        operatorId: operator.id,
-        operatorName: operator.name,
-        timestamp: new Date(),
-      })
-
-      this.broadcastConnectedUsers()
-      console.log("✅ [ChatGateway] Escalamiento automático completado exitosamente")
-    } catch (assignErr) {
-      console.error(`❌ [ChatGateway] Error en asignación automática:`, assignErr)
-      this.logger.warn(`No hay operadores disponibles para el chat ${chatId}: ${assignErr.message}`)
-
-      this.server.to(`chat:${chatId}`).emit("chatInQueue", {
-        chatId,
-        message: "⏳ Actualmente no hay operadores disponibles. Estás en la cola de atención.",
-        timestamp: new Date(),
-      })
-
-      this.server.to("role:OPERADOR").emit("chatInQueue", {
-        chatId,
-        clientId: clientId,
-        message: "⏳ Chat en cola esperando operador disponible",
-        timestamp: new Date(),
-      })
+    if (connectedOperators.length === 0) {
+      throw new Error('No hay operadores conectados');
     }
+
+    // Filtrar operadores disponibles según base de datos
+    const availableConnectedOperators: Operator[] = [];
+    console.log('🎧 Operadores disponibles:', availableConnectedOperators.map(op => ({ id: op.id, name: op.name })));
+
+    for (const user of connectedOperators) {
+      const operator = await this.operatorRepository.findById(user.userId);
+      if (operator && operator.isAvailable && operator.state === 'AVAILABLE') {
+        availableConnectedOperators.push(operator);
+      }
+    }
+
+    if (availableConnectedOperators.length === 0) {
+      throw new Error('No hay operadores disponibles entre los conectados');
+    }
+
+    // Seleccionar operador (lógica simple, primer disponible)
+    const operator = availableConnectedOperators[0];
+    console.log(`✅ [ChatGateway] Operador asignado:`, operator);
+
+    // Ejecutar caso de uso para asignar operador al chat
+    await this.assignSpecialistUseCaseToChat.execute(chatId, operator.id);
+
+    // Guardar mapeo chat -> operador
+    this.chatOperatorMap.set(chatId, operator.id);
+    console.log(`🗺️ [ChatGateway] Mapeo guardado: Chat ${chatId} -> Operador ${operator.id}`);
+
+    // Añadir chat a la lista de chats activos del operador
+    const operatorChats = this.operatorChats.get(operator.id) || [];
+    operatorChats.push(chatId);
+    this.operatorChats.set(operator.id, operatorChats);
+    console.log(`📋 [ChatGateway] Chats del operador ${operator.id}:`, operatorChats);
+
+    // Obtener socket actualizado del operador desde activeSockets
+    const operatorUser = this.connectedUsers.get(operator.id);
+    if (!operatorUser) {
+      throw new Error(`No se encontró usuario conectado para operador ${operator.id}`);
+    }
+
+    console.log(`🔍 [ChatGateway] Buscando socket actualizado para operador:`, {
+      operatorId: operator.id,
+      socketId: operatorUser.socketId,
+    });
+
+    const operatorSocket = this.activeSockets.get(operatorUser.socketId);
+    if (!operatorSocket) {
+      this.logger.warn(`No se encontró socket para operador ${operator.id} con socketId ${operatorUser.socketId}`);
+      return;
+    }
+
+    console.log(`🔌 [ChatGateway] Socket del operador encontrado:`, !!operatorSocket);
+
+    // Unir operador al room del chat
+    await operatorSocket.join(`chat:${chatId}`);
+    console.log(`🏠 [ChatGateway] Operador unido al room chat:${chatId}`);
+
+    // Obtener historial del chat para enviarlo al operador
+    const history = await this.chatRepository.getMessagesByChatId(chatId);
+    console.log(`📚 [ChatGateway] Historial del chat: ${history.length} mensajes`);
+
+    // Emitir evento al operador con detalles del chat asignado
+    operatorSocket.emit('chatAutoAssigned', {
+      chatId,
+      clientId,
+      operatorId: operator.id,
+      operatorName: operator.name,
+      message: '🚨 Nuevo chat asignado automáticamente',
+      history: history.map((msg) => ({
+        id: msg.id,
+        content: msg.content,
+        sender: msg.senderType,
+        timestamp: msg.timestamp,
+        chatId: msg.chatId,
+        senderName: this.getSenderName(msg.senderType, msg.userId),
+      })),
+      timestamp: new Date(),
+    });
+    console.log(`📤 [ChatGateway] Evento chatAutoAssigned enviado al operador ${operator.id}`);
+
+    // Actualizar dashboard del operador
+    await this.sendOperatorDashboard(operatorSocket as AuthenticatedSocket);
+
+    // Notificar al cliente que el chat fue escalado a operador humano
+    this.emitSpecialistAssigned(chatId, operator.id);
+    this.emitChatStatusChange(chatId, 'ESCALATED');
+
+    // Enviar mensaje del sistema al chat avisando que la IA ya no responderá
+    const systemMessage = await this.sendMessageUseCase.execute(
+      'system',
+      chatId,
+      `🎧 ${operator.name} se ha unido al chat. La IA ya no responderá automáticamente.`,
+      undefined,
+      'SYSTEM'
+    );
+    this.server.to(`chat:${chatId}`).emit('newMessage', {
+      ...systemMessage,
+      timestamp: new Date(),
+    });
+
+    // Notificar a todos los operadores que un chat fue asignado
+    this.server.to('role:OPERADOR').emit('operatorAssigned', {
+      chatId,
+      clientId,
+      operatorId: operator.id,
+      operatorName: operator.name,
+      timestamp: new Date(),
+    });
+
+    // Actualizar lista general de usuarios conectados
+    this.broadcastConnectedUsers();
+
+    console.log('✅ [ChatGateway] Escalamiento automático completado exitosamente');
+  } catch (assignErr) {
+    console.error(`❌ [ChatGateway] Error en asignación automática:`, assignErr);
+    this.logger.warn(`No hay operadores disponibles para el chat ${chatId}: ${assignErr.message}`);
+
+    // Notificar cliente que está en cola
+    this.server.to(`chat:${chatId}`).emit('chatInQueue', {
+      chatId,
+      message: '⏳ Actualmente no hay operadores disponibles. Estás en la cola de atención.',
+      timestamp: new Date(),
+    });
+
+    // Notificar operadores que hay un chat en cola
+    this.server.to('role:OPERADOR').emit('chatInQueue', {
+      chatId,
+      clientId,
+      message: '⏳ Chat en cola esperando operador disponible',
+      timestamp: new Date(),
+    });
   }
+}
+
+
 
   private getSenderName(senderType: string, userId: string): string {
     switch (senderType) {
@@ -730,3 +797,12 @@ function shouldEscalateToHuman(content: string): boolean {
   console.log(`🔍 [shouldEscalateToHuman] Contenido: "${content}" -> Escalar: ${shouldEscalate}`)
   return shouldEscalate
 }
+
+
+
+
+//-----------------------prueba-----------------------
+
+
+
+

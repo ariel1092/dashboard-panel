@@ -18,28 +18,33 @@ export class OperatorService {
 
   ) {}
 
- async create(dto: CreateOperatorDto) {
-     const operator = new Operator(
-       "",
-       dto.name,
-       dto.isAvailable ?? true,
-       0,
-       new Date(),
-       (dto.role as 'operador') ?? 'operador'
-     );
-     await this.operatorRepo.save(operator);
-     const user = await this.registerUserUseCase.execute(
+async create(dto: CreateOperatorDto) {
+   const userResult = await this.registerUserUseCase.execute(
     dto.email,
     dto.password,
-    'OPERADOR'  // rol de usuario para el token y auth
+    'OPERADOR'
   );
 
-  // 3. Retornar ambos datos (opcional, para que el admin sepa que se creó todo bien)
+  const operator = new Operator(
+    userResult.id!, // ✅ usar mismo ID del usuario
+    dto.name,
+    dto.isAvailable ?? true,
+    0,
+    new Date(),
+    'operador'
+  );
+
+  await this.operatorRepo.save(operator);
+
   return {
     operator,
-    user,
+    user: userResult.user,
+    token: userResult.token,
   };
-   }
+}
+
+  // 1. Registrar el usuario
+
 
   async getAvailable(): Promise<Operator[]> {
     return await this.operatorRepo.findAvailable();

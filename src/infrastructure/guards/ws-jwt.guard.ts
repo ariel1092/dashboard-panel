@@ -26,10 +26,40 @@ export class WsRolesGuard implements CanActivate {
   const allowedRoles = this.reflector.get<string[]>('roles', handler);
   console.log("🔍 Roles permitidos para el handler:", allowedRoles);
 
-  if (!allowedRoles || allowedRoles.length === 0) {
-    console.log("ℹ️ No hay roles definidos, acceso permitido por defecto");
-    return true;
+ if (!allowedRoles || allowedRoles.length === 0) {
+  console.log("ℹ️ No hay roles definidos, acceso permitido por defecto");
+
+  // Verificamos el token igual y guardamos el usuario
+  const token = client.handshake.auth?.token;
+  console.log("🔑 Token recibido en handshake:", token ? "Sí" : "No");
+
+  if (!token) {
+    console.error("❌ Token no proporcionado en handshake");
+    throw new UnauthorizedException('Token no proporcionado');
   }
+
+  let payload: any;
+  try {
+    payload = this.jwtService.verify(token);
+    console.log("✅ Token verificado con éxito:", payload);
+  } catch (err) {
+    console.error("❌ Error verificando token:", err.message);
+    throw new UnauthorizedException('Token inválido o expirado');
+  }
+
+  const userRole = payload.role;
+  const userId = payload.sub;
+
+  // Guardar el usuario en el socket
+  client.data.user = {
+    sub: userId,
+    role: userRole,
+  };
+  console.log("🔒 Usuario guardado en client.data.user:", client.data.user);
+
+  return true;
+}
+
 
   const token = client.handshake.auth?.token;
   console.log("🔑 Token recibido en handshake:", token ? "Sí" : "No");

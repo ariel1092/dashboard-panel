@@ -54,7 +54,7 @@ No uses explicaciones largas ni lenguaje técnico innecesario. Sos un vendedor: 
           },
         ],
         temperature: 0.7,
-        max_tokens: 600,
+        max_tokens: 150,
         top_p: 0.9,
         presence_penalty: 0.3,
         frequency_penalty: 0.3,

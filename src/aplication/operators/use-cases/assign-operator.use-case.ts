@@ -2,7 +2,7 @@
 import type { Operator } from "src/domain/operators/entities/operator.entity"
 import { OPERATOR_REPOSITORY } from "src/domain/token/operator.token"
 import type { MongoOperatorRepository } from "src/infrastructure/repositories/mongo-operator.repository"
-import { Inject, Injectable } from "@nestjs/common"
+import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from "@nestjs/common"
 
 @Injectable()
 export class AssignOperatorToChatUseCase {
@@ -15,10 +15,11 @@ export class AssignOperatorToChatUseCase {
       const available = await this.operatorRepo.findAvailable()
 
       console.log("🕵️‍♂️ Operadores disponibles encontrados:", available.length)
-      if (!available.length) {
-        console.log("❌ No hay operadores disponibles en AssignOperatorToChatUseCase")
-        throw new Error("No available operators")
-      }
+    if (!available.length) {
+  console.log("❌ No hay operadores disponibles en AssignOperatorToChatUseCase")
+  
+throw new HttpException('No available operators', HttpStatus.NOT_FOUND);
+}
 
       const sorted = available.sort((a, b) => {
         if (a.activeChats !== b.activeChats) return a.activeChats - b.activeChats

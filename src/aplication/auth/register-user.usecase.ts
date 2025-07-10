@@ -26,7 +26,9 @@ export class RegisterUserUseCase {
     password: string,
     role: UserRole,
    
-  ): Promise<{ user: UserResponseDto; token: string }> {
+  ): Promise<{
+    id: string | null | undefined; user: UserResponseDto; token: string 
+}> {
    
     // Verificar si el usuario ya existe
     const existingUser = await this.userRepository.findByEmail(email);
@@ -61,6 +63,7 @@ const token = this.tokenService.generateToken({
      return {
        user: userWithoutPassword,
        token,
+       id: savedUser.id,
       };
      
   }
