@@ -1,10 +1,20 @@
 import { Module } from '@nestjs/common';
-import { GenerateMessageUseCase } from 'src/aplication/IA-llama/use-case/use-cases/generate-message.usecase';
 import { LlamaApiService } from '../IA-llama/llama-api.service';
-
+import { GenerateMessageFromHistoryUseCase } from 'src/aplication/IA-llama/use-case/use-cases/generate-bot-response.usecase';
+import { GenerateMessageUseCase } from 'src/aplication/IA-llama/use-case/use-cases/generate-message.usecase';
 
 @Module({
   providers: [
+    LlamaApiService,
+
+    {
+      provide: GenerateMessageFromHistoryUseCase,
+      useFactory: (llamaApiService: LlamaApiService) => {
+        return new GenerateMessageFromHistoryUseCase(llamaApiService);
+      },
+      inject: [LlamaApiService],
+    },
+
     {
       provide: GenerateMessageUseCase,
       useFactory: (llamaApiService: LlamaApiService) => {
@@ -12,8 +22,7 @@ import { LlamaApiService } from '../IA-llama/llama-api.service';
       },
       inject: [LlamaApiService],
     },
-    LlamaApiService,
   ],
-  exports: [GenerateMessageUseCase],
+  exports: [GenerateMessageFromHistoryUseCase, GenerateMessageUseCase],
 })
 export class LlamaIaModule {}

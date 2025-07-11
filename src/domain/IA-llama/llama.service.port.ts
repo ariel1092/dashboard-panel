@@ -1,3 +1,8 @@
 export interface LlamaServicePort {
-    generateMessage(prompt: string): Promise<string>;
-  }
+  generateMessageFromHistory(messages: LlamaMessage[]): Promise<string>;
+}
+
+export interface LlamaMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}

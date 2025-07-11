@@ -271,9 +271,11 @@ import { LlamaController } from "../controllers/llama.controller"
 import { OperatorModule } from "./operator.module"
 import { WsRolesGuard } from "../guards/ws-jwt.guard"
 import { JwtModule} from "@nestjs/jwt"
+import { GetMessagesByChatIdUseCase } from "src/aplication/chat/use-cases/get-messages-by-chat-id.use-case"
+import { ChatController } from "../controllers/chat.controller"
 
 @Module({
-  controllers: [LlamaController],
+  controllers: [LlamaController,ChatController],
   imports: [
      JwtModule.register({
       secret: process.env.JWT_SECRET || 'supersecreto',
@@ -303,6 +305,7 @@ import { JwtModule} from "@nestjs/jwt"
     GetMessagesUseCase,
     CreateChatUseCase,
     AssignSpecialistUseCase,
+     GetMessagesByChatIdUseCase,
 
     {
       provide: FinishChatUseCase,
@@ -340,6 +343,7 @@ import { JwtModule} from "@nestjs/jwt"
     GetOperatorStatsUseCase,
     CHAT_REPOSITORY,
     CHAT_RATING_REPOSITORY,
+     GetMessagesByChatIdUseCase
   ],
 })
 export class ChatModule {}

@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { OpenAI } from 'openai';
-import { LlamaServicePort } from 'src/domain/IA-llama/llama.service.port';
+import { LlamaMessage, LlamaServicePort } from 'src/domain/IA-llama/llama.service.port';
 
 @Injectable()
 export class LlamaApiService implements LlamaServicePort {
@@ -15,43 +15,47 @@ export class LlamaApiService implements LlamaServicePort {
     },
   });
 
+  // 🔒 Prompt privado
   private readonly SYSTEM_PROMPT = `
-Sos un asesor virtual con más de 30 años de experiencia en ventas, especializado en servicios estéticos para la clínica DepilZONE.
+Sos un asesor virtual con 30 años de experiencia en ventas de estética en DepilZONE.
 
-Tu misión es asesorar y convencer a los clientes con respuestas claras, breves y efectivas, como lo haría un vendedor profesional. Siempre buscás cerrar la venta o agendar un turno.
+✅ Tu objetivo:
+- Cerrar la venta o conseguir que el cliente agende un turno.
+- Responder en un tono cordial y vendedor, pero directo.
+- Usar lenguaje claro, breve y sin tecnicismos.
+- Destacar beneficios: resultados, promociones, comodidad.
+- Evitar repetir información que ya se habló en la conversación.
+- Usar el contexto previo para no pedir al cliente lo mismo dos veces.
+- Terminar SIEMPRE con una llamada a la acción concreta.
 
-Tu enfoque debe ser:
-- Empático y cordial (pero no robótico).
-- Específico en los beneficios del servicio.
-- Persuasivo: destacá promociones, precios accesibles, o calidad tecnológica.
-- Terminá con una llamada a la acción (¿Querés que te pase info para sacar turno?, ¿Te gustaría aprovechar esta promo?, etc).
-
-Temas que podés tratar:
-- Depilación láser (zonas, precios, cantidad de sesiones, promociones).
+✅ Servicios que podés vender:
+- Depilación láser en distintas zonas (precios, sesiones, promos).
 - Blanqueamiento íntimo láser.
 - Formas de pago y turnos.
 
-⚠️ Si el cliente pregunta algo fuera de estos temas, respondé breve y derivalo a un asesor humano.
+⚠️ Si el cliente pide algo fuera de tema, respondé breve y derivá a un asesor humano.
 
-Ejemplo de estilo:
-"¡Genial! La depilación de piernas completas está en promo con 6 sesiones por $1.200. Usamos láser de última generación, seguro y rápido. ¿Te paso el enlace para agendar tu primera sesión?"
+✅ Ejemplo de estilo:
+"¡Genial! La depilación de cejas está en promo: 3 sesiones por $800. Usamos láser de última generación, rápido y seguro. ¿Querés reservar ahora o te paso más info?"
 
-No uses explicaciones largas ni lenguaje técnico innecesario. Sos un vendedor: cerrá la venta 😉.
+No seas robótico ni excesivamente técnico. Sé vendedor y resolutivo 😉
 `.trim();
 
-  async generateMessage(prompt: string): Promise<string> {
+  // ✅ Getter público que expone el prompt sin permitir modificación
+  get systemPrompt(): string {
+    return this.SYSTEM_PROMPT;
+  }
+
+  async generateMessageFromHistory(messages: LlamaMessage[]): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'meta-llama/llama-3-70b-instruct', // modelo gratuito y poderoso
+        model: 'meta-llama/llama-3-70b-instruct',
         messages: [
           {
             role: 'system',
-            content: this.SYSTEM_PROMPT,
+            content: this.SYSTEM_PROMPT, // o this.systemPrompt
           },
-          {
-            role: 'user',
-            content: prompt,
-          },
+          ...messages,
         ],
         temperature: 0.7,
         max_tokens: 150,

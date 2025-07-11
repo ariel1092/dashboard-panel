@@ -11,6 +11,7 @@ import { LlamaApiService } from 'src/infrastructure/IA-llama/llama-api.service';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { JwtAuthGuard } from '../guards/jwt.guard';
+import { LlamaMessage } from 'src/domain/IA-llama/llama.service.port';
 
 
 @ApiTags('Llama')
@@ -32,8 +33,8 @@ export class LlamaController {
       },
     },
   })
-  async chat(@Body('prompt') prompt: string) {
-    const response = await this.llamaApiService.generateMessage(prompt);
+  async chat(@Body('prompt')body: LlamaMessage[]) {
+    const response = await this.llamaApiService.generateMessageFromHistory(body);
     return { response };
   }
 }

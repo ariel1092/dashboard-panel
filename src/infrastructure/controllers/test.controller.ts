@@ -9,6 +9,7 @@ import { MongoClientLogRepository } from '../repositories/mongo-client-log.repos
 import { CLIENT_LOG_REPOSITORY } from 'src/domain/token/client.repository.token';
 import { FindClientsByDateUseCase } from 'src/aplication/clients/use-cases/find-clients-by-date.use-case';
 import { SendMothersDayPromotionUseCase } from 'src/aplication/clients/use-cases/send-mothersday-promotion.usecase';
+import { LlamaMessage } from 'src/domain/IA-llama/llama.service.port';
 
 @ApiTags('Test')
 @Controller('test')
@@ -53,8 +54,8 @@ export class TestController {
       required: ['prompt'],
     },
   })
-  async generateMessage(@Body() body: { prompt: string }) {
-    const result = await this.generateMessageUseCase.execute(body.prompt);
+  async generateMessage(@Body() body: LlamaMessage[]) {
+    const result = await this.generateMessageUseCase.execute(body);
     return { message: result };
   }
 

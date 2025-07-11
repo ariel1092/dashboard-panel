@@ -27,6 +27,7 @@ import { JwtService } from '@nestjs/jwt';
 import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
 import { Operator } from 'src/domain/operators/entities/operator.entity';
 import { OperatorRepository } from 'src/domain/operators/repositories/operator.repository';
+import { LlamaMessage } from 'src/domain/IA-llama/llama.service.port';
 
 
 interface AuthenticatedSocket extends Socket {
@@ -282,75 +283,97 @@ private broadcastConnectedUsers() {
     }
   }
 
-  @SubscribeMessage("sendMessage")
-  async handleSendMessage(client: AuthenticatedSocket, data: SendMessageDto) {
-    try {
-      const { chatId, content } = data
+@SubscribeMessage("sendMessage")
+async handleSendMessage(client: AuthenticatedSocket, data: SendMessageDto) {
+  try {
+    const { chatId, content } = data;
 
-      console.log(`💬 [ChatGateway] Mensaje recibido en chat ${chatId}: "${content}"`)
+    if (!chatId) throw new Error("chatId está ausente en sendMessage");
+    if (!client.userId) throw new Error("userId ausente en socket");
 
-      if (!chatId) throw new Error("chatId está ausente en sendMessage")
-      if (!client.userId) throw new Error("userId ausente en socket")
+    const allowedRoles = ["CLIENT", "OPERADOR", "BOT", "AI", "SYSTEM"] as const;
+    const senderType = allowedRoles.includes(client.userRole as any)
+      ? (client.userRole as (typeof allowedRoles)[number])
+      : "CLIENT";
 
-      const allowedRoles = ["CLIENT", "OPERADOR", "BOT", "AI", "SYSTEM"] as const
-      const senderType = allowedRoles.includes(client.userRole as any)
-        ? (client.userRole as (typeof allowedRoles)[number])
-        : "CLIENT"
+    // Guardar el mensaje recibido
+    const savedMessage = await this.sendMessageUseCase.execute(
+      client.userId,
+      chatId,
+      content,
+      undefined,
+      senderType
+    );
 
-      const savedMessage = await this.sendMessageUseCase.execute(client.userId, chatId, content, undefined, senderType)
+    // Emitir el mensaje a la sala del chat
+    this.server.to(`chat:${chatId}`).emit("newMessage", {
+      ...savedMessage,
+      timestamp: new Date(),
+    });
 
+    // Obtener el chat para revisar su estado
+    const chat = await this.chatRepository.getChatById(chatId);
+    if (!chat) throw new Error("Chat no encontrado");
+
+    const hasSpecialist = !!chat.specialistId;
+    const isIAChat = chat.type === "IA";
+    const shouldBotRespond = isIAChat && !hasSpecialist && senderType === "CLIENT";
+
+    if (shouldBotRespond) {
+      this.server.to(`chat:${chatId}`).emit("botThinking", { chatId });
+
+      // Obtener historial de mensajes como contexto
+      const messageHistory = await this.chatRepository.getMessagesByChatId(chatId);
+
+      const llamaMessages: LlamaMessage[] = [
+        {
+          role: "system",
+          content: this.llamaService.systemPrompt,
+        },
+        ...messageHistory.map((msg): LlamaMessage => ({
+          role: msg.senderType === "BOT" || msg.senderType === "AI" ? "assistant" : "user",
+          content: msg.content,
+        })),
+        {
+          role: "user",
+          content, // el mensaje actual del cliente
+        },
+      ];
+
+      // Generar respuesta con IA
+      const botResponse = await this.llamaService.generateMessageFromHistory(llamaMessages);
+
+      // Guardar el mensaje del bot
+      const botMessage = await this.sendMessageUseCase.execute(
+        "bot-id",
+        chatId,
+        botResponse,
+        client.userId,
+        "BOT"
+      );
+
+      // Emitir al cliente
       this.server.to(`chat:${chatId}`).emit("newMessage", {
-        ...savedMessage,
+        ...botMessage,
         timestamp: new Date(),
-      })
-
-      const chat = await this.chatRepository.getChatById(chatId)
-      if (!chat) throw new Error("Chat no encontrado")
-
-      const hasSpecialist = chat.specialistId && chat.specialistId !== null
-      const isIAChat = chat.type === "IA"
-      const shouldBotRespond = isIAChat && !hasSpecialist && senderType === "CLIENT"
-
-      console.log(`🤖 [ChatGateway] Estado del chat:`, {
-        hasSpecialist,
-        isIAChat,
-        shouldBotRespond,
-        chatType: chat.type,
-        specialistId: chat.specialistId,
-      })
-
-      if (shouldBotRespond) {
-        console.log("🤖 Bot va a responder...")
-        this.server.to(`chat:${chatId}`).emit("botThinking", { chatId })
-
-        const botResponse = await this.llamaService.generateMessage(content)
-        const botMessage = await this.sendMessageUseCase.execute("bot-id", chatId, botResponse, client.userId, "BOT")
-
-        this.server.to(`chat:${chatId}`).emit("newMessage", {
-          ...botMessage,
-          timestamp: new Date(),
-        })
-      }
-
-      // 🔧 VERIFICACIÓN MEJORADA para escalamiento
-      const shouldEscalate = shouldEscalateToHuman(content)
-      console.log(`🔄 [ChatGateway] ¿Debería escalar?`, {
-        shouldEscalate,
-        hasSpecialist,
-        content: content.toLowerCase(),
-      })
-
-      if (shouldEscalate && !hasSpecialist) {
-        console.log("🔄 [ChatGateway] Escalando a humano automáticamente...")
-        await this.autoAssignOperator(chatId, client.userId!)
-      }
-
-      this.logger.log(`Mensaje enviado en chat ${chatId} por ${client.userId}`)
-    } catch (error) {
-      this.logger.error(`Error al enviar mensaje en chat ${data.chatId}: ${error.message}`)
-      client.emit("error", { message: "Error enviando mensaje" })
+      });
     }
+
+    // Escalamiento a humano si aplica
+    const shouldEscalate = shouldEscalateToHuman(content);
+    if (shouldEscalate && !hasSpecialist) {
+      await this.autoAssignOperator(chatId, client.userId!);
+    }
+
+    this.logger.log(`Mensaje enviado en chat ${chatId} por ${client.userId}`);
+  } catch (error) {
+    this.logger.error(`Error al enviar mensaje en chat ${data.chatId}: ${error.message}`);
+    client.emit("error", { message: "Error enviando mensaje" });
   }
+}
+
+
+
 
 private async autoAssignOperator(chatId: string, clientId: string) {
   
