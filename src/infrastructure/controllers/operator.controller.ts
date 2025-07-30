@@ -8,6 +8,8 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  Logger,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,12 +25,16 @@ import { OperatorState } from 'src/domain/operators/entities/operator.entity';
 import { JwtAuthGuard } from '../guards/jwt.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
+import { Request } from 'express';
 
 
 @ApiTags('Operators')
 @Controller('operators')
 export class OperatorController {
-  constructor(private readonly service: OperatorService) {}
+
+  constructor(private readonly operatorService: OperatorService,
+
+  ) {}
 
  
   @Post()
@@ -36,15 +42,22 @@ export class OperatorController {
   @ApiBody({ type: CreateOperatorDto })
   @ApiResponse({ status: 201, description: 'Operador creado correctamente' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
-  async create(@Body() dto: CreateOperatorDto) {
-    return await this.service.create(dto);
+  
+  @Post()
+  async create(@Body()dto: CreateOperatorDto) {
+    console.log("📥 Backend recibió:", dto);
+
+    const result = await this.operatorService.create(dto);
+
+    // result = { user, token, id }
+    return result;
   }
 
   @Get('available')
   @ApiOperation({ summary: 'Obtener operadores disponibles' })
   @ApiResponse({ status: 200, description: 'Lista de operadores disponibles' })
   async getAvailable() {
-    return await this.service.getAvailable();
+    return await this.operatorService.getAvailable();
   }
 
   @Get(':id')
@@ -53,7 +66,19 @@ export class OperatorController {
   @ApiResponse({ status: 200, description: 'Operador encontrado' })
   @ApiResponse({ status: 404, description: 'Operador no encontrado' })
   async getById(@Param('id') id: string) {
-    const result = await this.service.getById(id);
+    const result = await this.operatorService.getById(id);
+    if (!result)
+      throw new HttpException('Operator not found', HttpStatus.NOT_FOUND);
+    return result;
+  }
+
+  @Get('name/:name')
+  @ApiOperation({ summary: 'Obtener operador por nombre' })
+  @ApiParam({ name: 'name', description: 'Nombre del operador' })
+  @ApiResponse({ status: 200, description: 'Operador encontrado' })
+  @ApiResponse({ status: 404, description: 'Operador no encontrado' })
+  async getByName(@Param('name') name: string) {
+    const result = await this.operatorService.getByName(name);
     if (!result)
       throw new HttpException('Operator not found', HttpStatus.NOT_FOUND);
     return result;
@@ -65,7 +90,7 @@ export class OperatorController {
   @ApiResponse({ status: 200, description: 'Operador asignado' })
   @ApiResponse({ status: 404, description: 'No hay operadores disponibles' })
   async assignOperator() {
-    return await this.service.assignOperator();
+    return await this.operatorService.assignOperator();
   }
 
 
@@ -90,7 +115,7 @@ export class OperatorController {
     @Param('id') id: string,
     @Body() body: { state: OperatorState },
   ) {
-    return await this.service.updateState(id, body.state);
+    return await this.operatorService.updateState(id, body.state);
   }
 
   
@@ -99,6 +124,7 @@ export class OperatorController {
   @ApiParam({ name: 'id', description: 'ID del operador' })
   @ApiResponse({ status: 200, description: 'Operador liberado' })
   async release(@Param('id') id: string) {
-    return await this.service.releaseOperator(id);
+    return await this.operatorService.releaseOperator(id);
   }
+
 }

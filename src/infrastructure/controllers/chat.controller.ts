@@ -31,6 +31,7 @@ export class ChatController {
       timestamp: msg.timestamp,
       chatId: msg.chatId,
       userId: msg.userId,
+      type: msg.type, 
     }))
   }
 }

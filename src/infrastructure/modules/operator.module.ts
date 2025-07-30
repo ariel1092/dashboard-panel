@@ -8,6 +8,7 @@ import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
 import { AssignOperatorToChatUseCase } from 'src/aplication/operators/use-cases/assign-operator.use-case';
 import { RegisterUserUseCase } from 'src/aplication/auth/register-user.usecase';
 import { AuthModule } from './auth.module';
+import { CreateOperatorUseCase } from 'src/aplication/operators/use-cases/create-operator.use-case';
 
 
 
@@ -20,6 +21,7 @@ import { AuthModule } from './auth.module';
     OperatorService,
     AssignOperatorToChatUseCase,
     RegisterUserUseCase,
+    CreateOperatorUseCase,
     
     {
       provide: OPERATOR_REPOSITORY,
@@ -27,6 +29,6 @@ import { AuthModule } from './auth.module';
     },
 
   ],
-  exports: [OperatorService, OPERATOR_REPOSITORY,AssignOperatorToChatUseCase,RegisterUserUseCase],
+  exports: [OperatorService, OPERATOR_REPOSITORY,AssignOperatorToChatUseCase,CreateOperatorUseCase],
 })
 export class OperatorModule {}

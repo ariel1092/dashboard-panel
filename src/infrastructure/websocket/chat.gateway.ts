@@ -12,7 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { SendMessageUseCase } from 'src/aplication/chat/use-cases/send-message.use-case';
 import { CreateChatUseCase } from 'src/aplication/chat/use-cases/create-chat.use-case';
 import { AssignSpecialistUseCase } from 'src/aplication/chat/use-cases/assign-specialist.use-case';
-import { SendMessageDto } from 'src/aplication/chat/dto/send-message.dto';
+import { MessageType, SendMessageDto } from 'src/aplication/chat/dto/send-message.dto';
 import { JoinChatDto } from 'src/aplication/chat/dto/join-chat.dto';
 import { LlamaApiService } from '../IA-llama/llama-api.service';
 import { AssignOperatorToChatUseCase } from 'src/aplication/operators/use-cases/assign-operator.use-case';
@@ -286,8 +286,11 @@ private broadcastConnectedUsers() {
 @SubscribeMessage("sendMessage")
 async handleSendMessage(client: AuthenticatedSocket, data: SendMessageDto) {
   try {
-    const { chatId, content } = data;
-
+    const { chatId, content,type } = data;
+    const messageType = type || 'TEXT'
+if (!['TEXT', 'IMAGE'].includes(messageType)) {
+  throw new Error('Invalid message type')
+}
     if (!chatId) throw new Error("chatId está ausente en sendMessage");
     if (!client.userId) throw new Error("userId ausente en socket");
 
@@ -297,13 +300,13 @@ async handleSendMessage(client: AuthenticatedSocket, data: SendMessageDto) {
       : "CLIENT";
 
     // Guardar el mensaje recibido
-    const savedMessage = await this.sendMessageUseCase.execute(
-      client.userId,
-      chatId,
-      content,
-      undefined,
-      senderType
-    );
+ const savedMessage = await this.sendMessageUseCase.execute({
+  userId: client.userId,
+  chatId,
+  type: messageType as MessageType,
+  content: content || '',
+  senderType,
+});
 
     // Emitir el mensaje a la sala del chat
     this.server.to(`chat:${chatId}`).emit("newMessage", {
@@ -324,16 +327,21 @@ async handleSendMessage(client: AuthenticatedSocket, data: SendMessageDto) {
 
       // Obtener historial de mensajes como contexto
       const messageHistory = await this.chatRepository.getMessagesByChatId(chatId);
-
+if (!content) {
+  throw new Error("El contenido no puede ser undefined para generar respuesta IA");
+}
       const llamaMessages: LlamaMessage[] = [
+        
         {
           role: "system",
           content: this.llamaService.systemPrompt,
         },
+        
         ...messageHistory.map((msg): LlamaMessage => ({
           role: msg.senderType === "BOT" || msg.senderType === "AI" ? "assistant" : "user",
-          content: msg.content,
+          content: msg.content!,
         })),
+        
         {
           role: "user",
           content, // el mensaje actual del cliente
@@ -344,13 +352,14 @@ async handleSendMessage(client: AuthenticatedSocket, data: SendMessageDto) {
       const botResponse = await this.llamaService.generateMessageFromHistory(llamaMessages);
 
       // Guardar el mensaje del bot
-      const botMessage = await this.sendMessageUseCase.execute(
-        "bot-id",
-        chatId,
-        botResponse,
-        client.userId,
-        "BOT"
-      );
+const botMessage = await this.sendMessageUseCase.execute({
+  userId: 'bot-id',
+  chatId,
+  type: type as MessageType,
+  content: botResponse,
+  senderType: 'BOT',
+  receiverId: client.userId,
+});
 
       // Emitir al cliente
       this.server.to(`chat:${chatId}`).emit("newMessage", {
@@ -360,7 +369,7 @@ async handleSendMessage(client: AuthenticatedSocket, data: SendMessageDto) {
     }
 
     // Escalamiento a humano si aplica
-    const shouldEscalate = shouldEscalateToHuman(content);
+    const shouldEscalate = shouldEscalateToHuman(content!);
     if (shouldEscalate && !hasSpecialist) {
       await this.autoAssignOperator(chatId, client.userId!);
     }
@@ -392,7 +401,7 @@ private async autoAssignOperator(chatId: string, clientId: string) {
 
     // Filtrar operadores disponibles según base de datos
     const availableConnectedOperators: Operator[] = [];
-    console.log('🎧 Operadores disponibles:', availableConnectedOperators.map(op => ({ id: op.id, name: op.name })));
+    console.log('🎧 Operadores disponibles:', availableConnectedOperators.map(op => ({ id: op.id, name: op.email })));
 
     for (const user of connectedOperators) {
       const operator = await this.operatorRepository.findById(user.userId);
@@ -454,7 +463,7 @@ private async autoAssignOperator(chatId: string, clientId: string) {
       chatId,
       clientId,
       operatorId: operator.id,
-      operatorName: operator.name,
+      operatorName: operator.email,
       message: '🚨 Nuevo chat asignado automáticamente',
       history: history.map((msg) => ({
         id: msg.id,
@@ -476,13 +485,13 @@ private async autoAssignOperator(chatId: string, clientId: string) {
     this.emitChatStatusChange(chatId, 'ESCALATED');
 
     // Enviar mensaje del sistema al chat avisando que la IA ya no responderá
-    const systemMessage = await this.sendMessageUseCase.execute(
-      'system',
-      chatId,
-      `🎧 ${operator.name} se ha unido al chat. La IA ya no responderá automáticamente.`,
-      undefined,
-      'SYSTEM'
-    );
+ const systemMessage = await this.sendMessageUseCase.execute({
+  userId: 'system',
+  chatId,
+  type: MessageType.TEXT,
+  content: `🎧 ${operator.email} se ha unido al chat. La IA ya no responderá automáticamente.`,
+  senderType: 'SYSTEM',
+});
     this.server.to(`chat:${chatId}`).emit('newMessage', {
       ...systemMessage,
       timestamp: new Date(),
@@ -493,7 +502,6 @@ private async autoAssignOperator(chatId: string, clientId: string) {
       chatId,
       clientId,
       operatorId: operator.id,
-      operatorName: operator.name,
       timestamp: new Date(),
     });
 
@@ -589,14 +597,13 @@ private async autoAssignOperator(chatId: string, clientId: string) {
         const currentUpdatedChats = currentOperatorChats.filter((id) => id !== data.chatId)
         this.operatorChats.set(client.userId!, currentUpdatedChats)
       }
-
-      const systemMessage = await this.sendMessageUseCase.execute(
-        "system",
-        data.chatId,
-        "✅ El operador ha finalizado este chat. ¡Gracias por contactarnos!",
-        undefined,
-        "SYSTEM",
-      )
+const systemMessage = await this.sendMessageUseCase.execute({
+  userId: 'system',
+  chatId: data.chatId,
+  type: MessageType.TEXT,
+  content: "✅ El operador ha finalizado este chat. ¡Gracias por contactarnos!",
+  senderType: 'SYSTEM',
+});
 
       this.server.to(`chat:${data.chatId}`).emit("newMessage", {
         ...systemMessage,
@@ -824,7 +831,6 @@ function shouldEscalateToHuman(content: string): boolean {
 
 
 
-//-----------------------prueba-----------------------
 
 
 

@@ -231,6 +231,7 @@ import { ChatMessageModel, type ChatMessageDocument } from "../schema/chat-messa
 import { ChatModel, type ChatDocument } from "../schema/chat.schema"
 import { ConnectedUserModel, type ConnectedUserDocument } from "../schema/connected-user.schema"
 import { v4 as uuidv4 } from "uuid"
+import { MessageType } from "src/aplication/chat/dto/send-message.dto"
 
 export enum ChatType {
   IA = "IA",
@@ -361,20 +362,33 @@ export class MongoChatRepository implements ChatRepository {
   // ---------- MENSAJES ----------
 
   async saveMessage(message: ChatMessage): Promise<ChatMessage> {
-    const created = new this.chatMessageModel(message)
-    const saved = await created.save()
+   const created = new this.chatMessageModel({
+    userId: message.userId,
+    chatId: message.chatId,
+    content: message.content,
+    receiverId: message.receiverId,
+    senderType: message.senderType,
+    isRead: message.isRead,
+    timestamp: message.timestamp,
+    mediaUrl: message.type as MessageType.IMAGE ? message.imageUrl : undefined,
+    mediaType: message.imageUrl,
+  })
+  const saved = await created.save()
 
-    return new ChatMessage(
-      saved.id.toString(),
-      saved.userId,
-      saved.chatId,
-      saved.content,
-      saved.receiverId,
-      saved.senderType,
-      saved.isRead,
-      saved.timestamp,
-    )
-  }
+  return new ChatMessage(
+    saved.id.toString(),
+    saved.userId,
+    saved.chatId,
+    saved.content,
+    saved.receiverId,
+    saved.senderType,
+    saved.isRead,
+    saved.timestamp,
+    saved.type as MessageType,
+    saved.imageUrl,
+  );
+}
+  
 
   async getMessages(): Promise<ChatMessage[]> {
     const docs = await this.chatMessageModel.find().sort({ timestamp: 1 }).lean()
@@ -406,6 +420,7 @@ export class MongoChatRepository implements ChatRepository {
           doc.senderType,
           doc.isRead,
           doc.timestamp,
+           doc.type as MessageType,
         ),
     )
   }

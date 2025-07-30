@@ -7,8 +7,12 @@ export type OperatorDocument = OperatorModel & Document;
 export class OperatorModel {
   @Prop({ type: String })
 _id: string;
+
   @Prop({ required: true })
   name: string;
+
+@Prop({ required: true, unique: true, lowercase: true, trim: true })
+email: string;
 
   @Prop({ default: true })
   isAvailable: boolean;

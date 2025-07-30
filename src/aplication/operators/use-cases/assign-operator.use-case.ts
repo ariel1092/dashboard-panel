@@ -27,7 +27,7 @@ throw new HttpException('No available operators', HttpStatus.NOT_FOUND);
       })
 
       const selected = sorted[0]
-      console.log("✅ Operador seleccionado para asignar:", selected.name, selected.id)
+      console.log("✅ Operador seleccionado para asignar:", selected.email, selected.id)
 
       selected.activeChats += 1
       await this.operatorRepo.update(selected)

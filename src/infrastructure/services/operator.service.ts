@@ -1,50 +1,43 @@
 
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateOperatorDto } from 'src/domain/operators/dto/create-operator.dto';
 import { OperatorRepository } from 'src/domain/operators/repositories/operator.repository';
 import { Operator, OperatorState } from 'src/domain/operators/entities/operator.entity';
 import { AssignOperatorToChatUseCase } from 'src/aplication/operators/use-cases/assign-operator.use-case';
 import { OPERATOR_REPOSITORY } from 'src/domain/token/operator.token';
-import { RegisterUserUseCase } from 'src/aplication/auth/register-user.usecase';
+import { CreateOperatorUseCase } from 'src/aplication/operators/use-cases/create-operator.use-case';
+import { OperatorController } from '../controllers/operator.controller';
 
 
 @Injectable()
 export class OperatorService {
+      private readonly logger = new Logger(OperatorController.name)
   constructor(
     @Inject(OPERATOR_REPOSITORY)
     private readonly operatorRepo: OperatorRepository,
     private readonly assignOperatorUseCase: AssignOperatorToChatUseCase,
-     private readonly registerUserUseCase: RegisterUserUseCase, 
-
+    private readonly createOperatorUseCase: CreateOperatorUseCase,
+   
   ) {}
 
-async create(dto: CreateOperatorDto) {
-   const userResult = await this.registerUserUseCase.execute(
-    dto.email,
-    dto.password,
-    'OPERADOR'
-  );
 
-  const operator = new Operator(
-    userResult.id!, // ✅ usar mismo ID del usuario
-    dto.name,
-    dto.isAvailable ?? true,
-    0,
-    new Date(),
-    'operador'
-  );
+  async create(dto: CreateOperatorDto): Promise<{ user: Operator; token: string; id: string }> {
+    this.logger.log(`[OperatorService] Se llamó a create con nombre: ${dto.name}`);
 
-  await this.operatorRepo.save(operator);
+    const existingOperator = await this.operatorRepo.findByName(dto.name);
+    if (existingOperator) {
+      throw new ConflictException('El operador ya existe');
+    }
 
-  return {
-    operator,
-    user: userResult.user,
-    token: userResult.token,
-  };
-}
+    // Ahora el use case devuelve user y token
+    const result = await this.createOperatorUseCase.execute(dto);
+
+    // result = { user: Operator, token: string, id: string }
+    return result;
+  }
+
 
   // 1. Registrar el usuario
-
 
   async getAvailable(): Promise<Operator[]> {
     return await this.operatorRepo.findAvailable();
@@ -74,7 +67,17 @@ async create(dto: CreateOperatorDto) {
     if (!operator) throw new Error('Operator not found');
 
     operator.activeChats = Math.max(0, operator.activeChats - 1);
-    operator.state = operator.activeChats === 0 ? OperatorState.AVAILABLE : OperatorState.BUSY;
+    operator.state =
+      operator.activeChats === 0 ? OperatorState.AVAILABLE : OperatorState.BUSY;
     return await this.operatorRepo.update(operator);
   }
+
+  async getByName(name: string): Promise<Operator | null> {
+    const operatorName = await this.operatorRepo.findByName(name);
+    if (!operatorName) {
+      throw new NotFoundException(`Operator with name ${name} not found`);
+    }
+    return operatorName;
 }
+  }
+

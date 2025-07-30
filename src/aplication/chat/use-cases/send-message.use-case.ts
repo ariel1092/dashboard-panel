@@ -1,32 +1,88 @@
+// import { Inject, Injectable } from "@nestjs/common"
+// import type { ChatRepository } from "src/domain/chat/chat.repository.interface"
+// import { ChatMessage } from "src/domain/chat/chat.entity"
+
+// import { v4 as uuidv4 } from "uuid"
+// import { CHAT_REPOSITORY } from "src/domain/token/chat.repository.token"
+
+// @Injectable()
+// export class SendMessageUseCase {
+//   constructor(
+//     @Inject(CHAT_REPOSITORY)
+//     private readonly repository: ChatRepository,
+//   ) {
+//   }
+
+//   async execute(
+//     userId: string,
+//     chatId: string,
+//     content: string,
+//     receiverId?: string,
+//     senderType: "CLIENT" | "OPERADOR" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
+//   ): Promise<ChatMessage> {
+//     // Verificar que el chat existe
+//     const chat = await this.repository.getChatById(chatId)
+//     if (!chat) {
+//       throw new Error("Chat not found")
+//     }
+
+//     const message = new ChatMessage(uuidv4(), userId, chatId, content, receiverId, senderType)
+
+//     return await this.repository.saveMessage(message)
+//   }
+// }
+
+
+
 import { Inject, Injectable } from "@nestjs/common"
 import type { ChatRepository } from "src/domain/chat/chat.repository.interface"
 import { ChatMessage } from "src/domain/chat/chat.entity"
-
 import { v4 as uuidv4 } from "uuid"
 import { CHAT_REPOSITORY } from "src/domain/token/chat.repository.token"
+import { MessageType } from "../dto/send-message.dto"
+
+
 
 @Injectable()
 export class SendMessageUseCase {
   constructor(
     @Inject(CHAT_REPOSITORY)
     private readonly repository: ChatRepository,
-  ) {
-  }
-
-  async execute(
-    userId: string,
-    chatId: string,
-    content: string,
-    receiverId?: string,
-    senderType: "CLIENT" | "OPERADOR" | "BOT" | "AI" | "SYSTEM" = "CLIENT",
-  ): Promise<ChatMessage> {
-    // Verificar que el chat existe
+  ) {}
+async execute({
+  userId,
+  chatId,
+  type,
+  content,
+  senderType = "CLIENT",
+  receiverId,
+  imageUrl
+}: {
+  userId: string
+  chatId: string
+  type: MessageType
+  content: string
+  senderType?: "CLIENT" | "OPERADOR" | "BOT" | "AI" | "SYSTEM"
+  receiverId?: string
+  imageUrl?: string
+}): Promise<ChatMessage> {
     const chat = await this.repository.getChatById(chatId)
     if (!chat) {
       throw new Error("Chat not found")
     }
 
-    const message = new ChatMessage(uuidv4(), userId, chatId, content, receiverId, senderType)
+    const message = new ChatMessage(
+      uuidv4(),
+      userId,
+      chatId,
+      content, 
+      receiverId,
+      senderType,
+      false,
+      new Date(),
+      type,
+      type === MessageType.IMAGE ? imageUrl : undefined,
+    )
 
     return await this.repository.saveMessage(message)
   }

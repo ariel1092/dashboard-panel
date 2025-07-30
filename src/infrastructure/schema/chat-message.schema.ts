@@ -11,13 +11,16 @@ export class ChatMessageModel {
   @Prop({ required: true })
   chatId: string
 
-  @Prop({ required: true })
+  @Prop({ required: true, enum: ["TEXT", "IMAGE"], default: "TEXT" })
+  type: "TEXT" | "IMAGE"  // 👈 Ahora va antes que content
+
+  @Prop()
   content: string
 
   @Prop()
   receiverId?: string
 
-   @Prop({ required: true, enum: ["CLIENT", "OPERADOR", "BOT", "AI", "SYSTEM"] })
+  @Prop({ required: true, enum: ["CLIENT", "OPERADOR", "BOT", "AI", "SYSTEM"] })
   senderType: "CLIENT" | "OPERADOR" | "BOT" | "AI" | "SYSTEM"
 
   @Prop({ default: false })
@@ -25,6 +28,9 @@ export class ChatMessageModel {
 
   @Prop({ default: Date.now })
   timestamp: Date
+
+  @Prop()
+  imageUrl?: string
 }
 
 export const ChatMessageSchema = SchemaFactory.createForClass(ChatMessageModel)

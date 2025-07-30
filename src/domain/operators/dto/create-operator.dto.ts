@@ -1,10 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+export enum Role {
+  CLIENT = 'CLIENT',
+  OPERADOR = 'OPERADOR',
+  ADMIN = 'ADMIN',
+}
 export class CreateOperatorDto {
   @ApiProperty({
+    description: 'Nombre del operador',
+    example: 'Operador 1',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name: string; 
+
+
+  @ApiProperty({
     description: 'Email del operador',
-    example: 'carla.fernandez@example.com',
+    example: 'operador@correo.com',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -12,7 +25,7 @@ export class CreateOperatorDto {
 
   @ApiProperty({
     description: 'Contraseña para el operador',
-    example: 'MiPasswordSegura123',
+    example: 'operador123',
   })
   @IsString()
   @IsNotEmpty()
@@ -20,11 +33,9 @@ export class CreateOperatorDto {
 
   @ApiProperty({
     description: 'Nombre del operador',
-    example: 'Carla Fernández',
+    example: 'nombre del operador',
   })
-  @IsString()
-  @IsNotEmpty()
-  name: string;
+
 
   @ApiPropertyOptional({
     description: 'Indica si el operador está disponible para recibir chats',
@@ -35,11 +46,16 @@ export class CreateOperatorDto {
   @IsOptional()
   isAvailable?: boolean = true;
 
-   @ApiPropertyOptional({
+  @ApiPropertyOptional({
     description: 'Rol del usuario, será forzado a OPERADOR en backend',
     example: 'OPERADOR',
   })
+  @ApiPropertyOptional({
+    description: 'Rol del usuario, será forzado a OPERADOR en backend',
+    example: 'OPERADOR',
+    enum: Role,
+  })
+  @IsEnum(Role)
   @IsOptional()
-  @IsString()
-  role: string = 'OPERADOR';
+  role: Role = Role.OPERADOR;
 }

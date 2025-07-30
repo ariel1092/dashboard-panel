@@ -19,7 +19,7 @@ export enum UserRole {
   ADMIN = 'admin',
   CLIENT = 'client', 
   ANALISTA = 'analista',
-  OPERADOR = 'specialist'
+  OPERADOR = 'operador',
 }
 
 // Roles que pueden usar chats (crear y participar)
@@ -37,6 +37,6 @@ export const OPERATOR_ROLES: UserRole[] = [
 export enum MessageType {
   USER = 'USER',     // Mensaje de usuario
   AI = 'AI',         // Mensaje de IA
-  OPERATOR = 'OPERATOR', // Mensaje de operador humano
+  OPERADOR = 'OPERADOR', // Mensaje de operador humano
   SYSTEM = 'SYSTEM'  // Mensaje del sistema (notificaciones)
 }

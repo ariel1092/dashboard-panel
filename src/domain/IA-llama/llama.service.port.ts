@@ -4,5 +4,5 @@ export interface LlamaServicePort {
 
 export interface LlamaMessage {
   role: "user" | "assistant" | "system";
-  content: string;
+  content: string
 }

@@ -24,7 +24,7 @@ export class LoginUserUseCase {
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService
   ) {}
 
-  async execute(email: string, password: string): Promise<{ user: UserResponseDto; token: string }> {
+  async execute( email: string, password: string): Promise<{ user: UserResponseDto; token: string }> {
   
     const user = await this.userRepository.findByEmail(email);
 
@@ -46,7 +46,7 @@ export class LoginUserUseCase {
     }
 
 const payload = {
-  sub: user.id, // ✅ importante: esto es lo que espera NestJS
+  sub: user.id, 
   role: user.role,
 };
 

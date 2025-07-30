@@ -33,7 +33,7 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   async login(@Body() body: LoginDto) {
     const { email, password } = body;
-    const result = await this.loginUserUseCase.execute(email, password);
+    const result = await this.loginUserUseCase.execute( email, password);
     return { message: 'Login exitoso', ...result };
   }
 }

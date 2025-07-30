@@ -14,11 +14,13 @@ import { SchedulerModule } from './infrastructure/modules/scheduler.module';
 import { ChatModule } from './infrastructure/modules/chat.module';
 import { OperatorModule } from './infrastructure/modules/operator.module';
 import { OperatorController } from './infrastructure/controllers/operator.controller';
+import { CloudinaryModule } from './infrastructure/modules/cloudinary.module';
+import { UploadController } from './infrastructure/controllers/cloudinary-mock.controller';
 
 
 @Module({
 
-  controllers: [ClientController, AuthController,TestController,OperatorController], 
+  controllers: [ClientController, AuthController,TestController,OperatorController,UploadController], 
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -37,7 +39,8 @@ import { OperatorController } from './infrastructure/controllers/operator.contro
     CampaignsModule,
     SchedulerModule,
     ChatModule,
-    OperatorModule
+    OperatorModule,
+    CloudinaryModule
 
   ],
 })
