@@ -125,7 +125,7 @@ import { InjectModel } from "@nestjs/mongoose"
 @Injectable()
 export class MongoChatRatingRepository implements ChatRatingRepository {
   constructor(
-    @InjectModel(ChatRatingModel.name) // 👈 Esto le indica a Nest de dónde sacar el modelo
+    @InjectModel(ChatRatingModel.name) 
     private readonly ratingModel: Model<ChatRatingDocument>,
   ) {}
 

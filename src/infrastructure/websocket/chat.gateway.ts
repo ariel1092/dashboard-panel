@@ -489,7 +489,7 @@ private async autoAssignOperator(chatId: string, clientId: string) {
   userId: 'system',
   chatId,
   type: MessageType.TEXT,
-  content: `🎧 ${operator.email} se ha unido al chat. La IA ya no responderá automáticamente.`,
+  content: `🎧 ${operator.name} se ha unido al chat. La IA ya no responderá automáticamente.`,
   senderType: 'SYSTEM',
 });
     this.server.to(`chat:${chatId}`).emit('newMessage', {
@@ -819,6 +819,8 @@ const escalationTriggers = [
   "atención humana",
   "soporte humano",
   "operador humano",
+  "Necesito hablar con un vendedor",
+  
 ]
 
 function shouldEscalateToHuman(content: string): boolean {

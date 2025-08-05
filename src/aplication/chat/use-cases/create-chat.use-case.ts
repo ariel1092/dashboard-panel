@@ -38,7 +38,7 @@ import type { Chat } from "src/domain/chat/chat.entity"
 
 interface CreateChatInput {
   userId: string
-  type?: "IA" | "HUMAN" // o usá tu Enum `ChatType` si lo tenés
+  type?: "IA" | "HUMAN" 
 }
 
 @Injectable()
@@ -49,7 +49,7 @@ export class CreateChatUseCase {
   async execute(input: CreateChatInput): Promise<Chat> {
     return await this.repository.createChat({
       userId: input.userId,
-      type: input.type ?? "IA", // default = IA
+      type: input.type ?? "IA", 
       status: "WAITING",
       createdAt: new Date(),
       updatedAt: new Date(),

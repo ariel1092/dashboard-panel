@@ -269,10 +269,5 @@ async exists(phone: string): Promise<boolean> {
       throw error;
     }
   }
-//   async debugDumpPhones(): Promise<string[]> {
-//   const all = await this.clientModel.find().lean().exec();
-//   const phones = all.map(doc => doc.phone);
-//   this.logger.warn('▶ All phones in DB:', JSON.stringify(phones));
-//   return phones;
-// }
+
 }

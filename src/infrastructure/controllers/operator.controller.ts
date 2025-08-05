@@ -26,6 +26,7 @@ import { JwtAuthGuard } from '../guards/jwt.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { Request } from 'express';
+import { GetActiveChatsByOperatorUseCase } from 'src/aplication/chat/use-cases/get-active-chats-by-operator.use-case';
 
 
 @ApiTags('Operators')
@@ -33,6 +34,7 @@ import { Request } from 'express';
 export class OperatorController {
 
   constructor(private readonly operatorService: OperatorService,
+     private readonly getActiveChatsByOperatorUseCase: GetActiveChatsByOperatorUseCase
 
   ) {}
 
@@ -70,6 +72,10 @@ export class OperatorController {
     if (!result)
       throw new HttpException('Operator not found', HttpStatus.NOT_FOUND);
     return result;
+  }
+   @Get(':operatorId/active-chats')
+  async getActiveChats(@Param('operatorId') operatorId: string) {
+    return this.getActiveChatsByOperatorUseCase.execute(operatorId)
   }
 
   @Get('name/:name')

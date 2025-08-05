@@ -26,4 +26,10 @@ createChat(params: CreateChatParams): Promise<Chat>;
   removeConnectedUser(userId: string): Promise<void>
   getConnectedUsers(): Promise<{ userId: string; socketId: string }[]>
   isUserConnected(userId: string): Promise<boolean>
+
+
+
+
+  // Chats activos por operador
+  findActiveChatsByOperator(operatorId: string): Promise<Chat[]>;
 }

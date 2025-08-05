@@ -3,6 +3,10 @@ import { IsEmail, IsString, MinLength, Matches, IsIn } from 'class-validator';
 import { UserRole } from 'src/domain/auth/entities/user.entity';
 
 export class RegisterDto {
+  @ApiProperty({
+    description: 'Correo electrónico del usuario',
+    example: 'cliente123@hotmail.com',
+  })
   @IsEmail()
   email: string;
 

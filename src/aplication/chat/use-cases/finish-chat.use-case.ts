@@ -7,12 +7,6 @@ import { CHAT_REPOSITORY } from "src/domain/token/chat.repository.token"
 
 
 
-// @Injectable()
-// export class CreateChatUseCase {
-//   constructor(
-//     @Inject(CHAT_REPOSITORY) private readonly repository: ChatRepository,
-//   ) {}
-
 @Injectable()
 export class FinishChatUseCase {
 
